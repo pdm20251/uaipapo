@@ -20,6 +20,9 @@ class SignInViewModel @Inject constructor() : ViewModel() {
 
     val auth = FirebaseAuth.getInstance()
 
+    var storedVerificationId: String? = null
+    var resendToken: PhoneAuthProvider.ForceResendingToken
+
     fun signIn(phonenumber: String) {
         _state.value = SignInState.Loading
         // Firebase signIn
@@ -52,6 +55,20 @@ class SignInViewModel @Inject constructor() : ViewModel() {
             override fun onVerificationFailed(e: FirebaseException) {
                 _state.value = SignInState.Error
                 Log.w("TAG", "onVerificationFailed", e)
+            }
+
+            override fun onCodeSent(
+                verificationId: String,
+                token: PhoneAuthProvider.ForceResendingToken,
+            ) {
+                // The SMS verification code has been sent to the provided phone number, we
+                // now need to ask the user to enter the code and then construct a credential
+                // by combining the code with a verification ID.
+                Log.d("TAG", "onCodeSent:$verificationId")
+
+                // Save verification ID and resending token so we can use them later
+                storedVerificationId = verificationId
+                resendToken = token
             }
         }
 
