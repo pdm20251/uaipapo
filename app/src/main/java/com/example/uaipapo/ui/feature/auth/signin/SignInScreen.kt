@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.uaipapo.R
+import com.example.uaipapo.ui.feature.auth.signin.SignInViewModel.SignInState
 
 @Composable
 fun SignInScreen(navController: NavController) {
@@ -49,8 +50,8 @@ fun SignInScreen(navController: NavController) {
     LaunchedEffect(key1 = uiState.value) {
 
         when (uiState.value) {
-            is SignInState.Success -> {
-                navController.navigate("home")
+            is SignInState.CodeSent -> {
+                navController.navigate("otp")
             }
 
             is SignInState.Error -> {
@@ -80,7 +81,9 @@ fun SignInScreen(navController: NavController) {
             )
 
             OutlinedTextField(value = phonenumber,
-                onValueChange = { phonenumber = it },
+                onValueChange = {
+                    phonenumber = it
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(text = "Phone Number") },
                 placeholder = { Text(text = "+55 (34) 99999-9999")}
@@ -92,7 +95,7 @@ fun SignInScreen(navController: NavController) {
                 CircularProgressIndicator()
             } else {
                 Button(
-                    onClick = { viewModel.signIn(phonenumber) },
+                    onClick = { viewModel.sendOtp(phonenumber, false) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = phonenumber.isNotEmpty() && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error)
                 ) {
