@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "uaiPapo"
+rootProject.name = "uaipapo"
 include(":app")
