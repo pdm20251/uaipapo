@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.dagger.hilt)
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -39,6 +40,13 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packagingOptions {
+        resources {
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "mozilla/public-suffix-list.txt"
+        }
+    }
 }
 
 dependencies {
@@ -65,6 +73,7 @@ dependencies {
     implementation(libs.dagger.hilt.compose)
     implementation(libs.coil)
     implementation(libs.material)
+
     implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
@@ -73,7 +82,6 @@ dependencies {
     implementation ("com.google.firebase:firebase-messaging")
     implementation ("com.google.auth:google-auth-library-oauth2-http:1.19.0")
 
-    implementation("com.github.ZEGOCLOUD:zego_uikit_prebuilt_call_android:+")
     implementation("com.guolindev.permissionx:permissionx:1.8.0")
 
     implementation ("io.github.jan-tennert.supabase:storage-kt:1.4.7")
