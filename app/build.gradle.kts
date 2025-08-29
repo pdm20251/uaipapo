@@ -2,8 +2,12 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    // Video
     alias(libs.plugins.dagger.hilt)
-    id("com.google.devtools.ksp")
+    kotlin("kapt")
+
+    // Para utilizar Firebase
     id("com.google.gms.google-services")
 }
 
@@ -13,7 +17,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.uaipapo"
-        minSdk = 24
+        minSdk = 27
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -40,13 +44,6 @@ android {
     buildFeatures {
         compose = true
     }
-
-    packagingOptions {
-        resources {
-            excludes += "META-INF/DEPENDENCIES"
-            excludes += "mozilla/public-suffix-list.txt"
-        }
-    }
 }
 
 dependencies {
@@ -68,28 +65,31 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    // Setup do tutorial
     implementation(libs.dagger.hilt.android)
     implementation(libs.firebase.crashlytics.buildtools)
-    ksp(libs.dagger.hilt.compiler)
+    kapt(libs.dagger.hilt.compiler)
     implementation(libs.dagger.hilt.compose)
     implementation(libs.coil)
-    implementation(libs.material)
 
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-storage")
-    implementation ("com.google.firebase:firebase-messaging")
-    implementation ("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+    implementation("com.google.firebase:firebase-messaging")
 
-    implementation("com.guolindev.permissionx:permissionx:1.8.0")
+    // Volley
+    implementation("com.android.volley:volley:1.2.1")
+/*
+    // Supabase
+    implementation(platform("io.github.jan-tennert.supabase:bom:2.2.3"))
+        // Supabase Core
+        implementation("io.github.jan-tennert.supabase:postgrest-kt")
+        // Supabase Armazenamento de Arquivos
+        implementation("io.github.jan-tennert.supabase:storage-kt")
 
-    implementation ("io.github.jan-tennert.supabase:storage-kt:1.4.7")
-    implementation ("io.github.jan-tennert.supabase:compose-auth:1.4.7")
-
-    val ktor_version = "2.3.13"
-    implementation ("io.ktor:ktor-client-android:$ktor_version")
-    implementation ("io.ktor:ktor-client-core:$ktor_version")
-    implementation ("io.ktor:ktor-utils:$ktor_version")
+    // GoogleAPI que envolve GogleCredentials
+    implementation("com.google.api-client:google-api-client:2.4.0")*/
 }

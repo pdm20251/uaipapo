@@ -1,4 +1,4 @@
-package com.example.uaipapo.ui.feature.home
+package com.example.uaipapo.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,7 +27,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,26 +41,47 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.uaipapo.AppID
-import com.example.uaipapo.AppSign
-import com.example.uaipapo.MainActivity
+import com.example.uaipapo.model.Channel
 import com.example.uaipapo.ui.theme.DarkGrey
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 
+/**
+ * Tela principal (`Home`) que exibe a lista de canais de chat e permite criar novos.
+ *
+ * @param navController O controlador de navegação para gerenciar a transição para a tela de chat.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
-    val context = LocalContext.current as MainActivity
-
+    // Instancia e gerencia o ViewModel usando Hilt.
     val viewModel = hiltViewModel<HomeViewModel>()
+
+    // Coleta o estado dos canais a partir do ViewModel.
     val channels = viewModel.channels.collectAsState()
-    val addChannel = remember {
-        mutableStateOf(false)
-    }
+
+    // Variável de estado para controlar a visibilidade do modal de adicionar canal.
+    val addChannel = remember { mutableStateOf(false) }
+
+    // Estado do ModalBottomSheet.
     val sheetState = rememberModalBottomSheetState()
+
+    // Variável de estado para o texto de busca.
+    val searchText = remember { mutableStateOf("") }
+
+    // Filtra a lista de canais com base no texto de busca.
+    val filteredChannels: List<Channel> = remember(channels.value, searchText.value) {
+        if (searchText.value.isBlank()) {
+            channels.value
+        } else {
+            channels.value.filter {
+                it.name?.contains(searchText.value, ignoreCase = true) ?: false
+            }
+        }
+    }
+
+    // O `Scaffold` fornece uma estrutura de layout para a tela.
     Scaffold(
         floatingActionButton = {
+            // Botão flutuante para adicionar um novo canal.
             Box(modifier = Modifier
                 .padding(16.dp)
                 .clip(RoundedCornerShape(16.dp))
@@ -71,20 +90,23 @@ fun HomeScreen(navController: NavController) {
                     addChannel.value = true
                 }) {
                 Text(
-                    text = "Add Channel", modifier = Modifier.padding(16.dp), color = Color.White
+                    text = "Adicionar Canal", modifier = Modifier.padding(16.dp), color = Color.White
                 )
             }
-        }, containerColor = Color.Black
+        },
+        containerColor = Color.Black
     ) {
         Box(
             modifier = Modifier
                 .padding(it)
                 .fillMaxSize()
         ) {
+            // `LazyColumn` para exibir uma lista de itens.
             LazyColumn {
                 item {
+                    // Título da tela.
                     Text(
-                        text = "Messages",
+                        text = "🗯️ Suas conversas",
                         color = Color.Gray,
                         style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
                         modifier = Modifier.padding(16.dp)
@@ -92,12 +114,13 @@ fun HomeScreen(navController: NavController) {
                 }
 
                 item {
-                    TextField(value = "",
-                        onValueChange = {},
-                        placeholder = { Text(text = "Search...") },
+                    // Campo de texto de busca.
+                    TextField(value = searchText.value,
+                        onValueChange = { searchText.value = it },
+                        placeholder = { Text(text = "Procurar...") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
                             .clip(
                                 RoundedCornerShape(40.dp)
                             ),
@@ -118,105 +141,118 @@ fun HomeScreen(navController: NavController) {
                         })
                 }
 
-                items(channels.value) { channel ->
+                // Itera sobre a lista de canais filtrados para criar um `ChannelItem` para cada um.
+                items(filteredChannels) { channel ->
                     Column {
                         ChannelItem(
                             channelName = channel.name,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-                            false,
                             onClick = {
+                                // Navega para a tela de chat com o ID e o nome do canal.
                                 navController.navigate("chat/${channel.id}&${channel.name}")
-                            },
-                            onCall = {})
+                            })
                     }
                 }
             }
         }
     }
 
+    // Exibe o modal de adicionar canal se a variável de estado for verdadeira.
     if (addChannel.value) {
-        ModalBottomSheet(onDismissRequest = { addChannel.value = false }, sheetState = sheetState) {
+        ModalBottomSheet(
+            onDismissRequest = { addChannel.value = false },
+            sheetState = sheetState
+        ) {
             AddChannelDialog {
                 viewModel.addChannel(it)
                 addChannel.value = false
             }
         }
     }
-
 }
 
-
+/**
+ * Componente de UI para exibir um item de canal na lista.
+ *
+ * @param channelName O nome do canal.
+ * @param modifier Modificador para aplicar estilos ao componente.
+ * @param onClick A função a ser executada ao clicar no item.
+ */
 @Composable
 fun ChannelItem(
     channelName: String,
     modifier: Modifier,
-    shouldShowCallButtons: Boolean = false,
     onClick: () -> Unit,
-    onCall: (ZegoSendCallInvitationButton) -> Unit
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(DarkGrey)
     ) {
         Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .align(Alignment.CenterStart)
-                .clickable {
-                    onClick()
-                },
+                .padding(bottom = 16.dp)
+                .clickable { onClick() },
+
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Caixa circular que exibe a primeira letra do nome do canal.
             Box(
                 modifier = Modifier
                     .padding(8.dp)
-                    .size(70.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(Color.Yellow.copy(alpha = 0.3f))
-
             ) {
                 Text(
                     text = channelName[0].uppercase(),
                     color = Color.White,
-                    style = TextStyle(fontSize = 35.sp),
+                    style = TextStyle(fontSize = 36.sp),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
 
-
+            // Nome do canal.
             Text(text = channelName, modifier = Modifier.padding(8.dp), color = Color.White)
-        }
-        if (shouldShowCallButtons) {
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                CallButton(isVideoCall = true, onCall)
-                CallButton(isVideoCall = false, onCall)
-            }
         }
     }
 }
 
+/**
+ * Diálogo em formato de folha modal para adicionar um novo canal.
+ *
+ * @param onAddChannel A função de callback a ser chamada com o nome do novo canal.
+ */
 @Composable
 fun AddChannelDialog(onAddChannel: (String) -> Unit) {
-    val channelName = remember {
-        mutableStateOf("")
-    }
+    // Variável de estado para o nome do canal digitado.
+    val channelName = remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier.padding(8.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Add Channel")
+        Text(text = "Adicionar Canal")
         Spacer(modifier = Modifier.padding(8.dp))
-        TextField(value = channelName.value, onValueChange = {
-            channelName.value = it
-        }, label = { Text(text = "Channel Name") }, singleLine = true)
+        // Campo de texto para o nome do canal.
+        TextField(
+            value = channelName.value,
+            onValueChange = { channelName.value = it },
+            label = { Text(text = "Nome do Canal") },
+            singleLine = true
+        )
         Spacer(modifier = Modifier.padding(8.dp))
-        Button(onClick = { onAddChannel(channelName.value) }, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Add")
+        // Botão para adicionar o canal.
+        Button(
+            onClick = { onAddChannel(channelName.value) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Adicionar")
         }
     }
 }

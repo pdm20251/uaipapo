@@ -33,26 +33,38 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+/**
+ * Define o tema do aplicativo, aplicando cores e tipografia do Material Design.
+ *
+ * @param darkTheme Determina se o tema escuro deve ser aplicado. O valor padrão usa a configuração
+ * do sistema.
+ * @param dynamicColor Ativa as cores dinâmicas para dispositivos Android 12+ (S). O valor padrão
+ * está ativado.
+ * @param content O conteúdo da UI para o qual o tema será aplicado.
+ */
 @Composable
-fun uaiPapoTheme(
+fun UaipapoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    // Define o esquema de cores com base nas opções de cor dinâmica e tema escuro.
     val colorScheme = when {
+        // Usa cores dinâmicas se o dispositivo for Android 12+ e a opção estiver ativada.
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        // Usa o esquema de cores padrão para o tema escuro.
+        darkTheme -> darkColorScheme() // Assumindo uma função para o tema escuro padrão
+        // Usa o esquema de cores padrão para o tema claro.
+        else -> lightColorScheme() // Assumindo uma função para o tema claro padrão
     }
 
+    // Aplica o tema Material Design com o esquema de cores e tipografia definidos.
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = Typography, // Assumindo uma variável de tipografia
         content = content
     )
 }
