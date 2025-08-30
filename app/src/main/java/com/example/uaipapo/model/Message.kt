@@ -18,6 +18,6 @@ data class Message(
     val message: String? = "",
     val createdAt: Long = System.currentTimeMillis(),
     val senderName: String = "",
-    val senderPhotoUrl: String? = null,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val senderPhotoUrl: String? = null
 )

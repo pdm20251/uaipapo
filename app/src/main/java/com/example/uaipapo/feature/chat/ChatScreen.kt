@@ -1,5 +1,8 @@
 package com.example.uaipapo.feature.chat
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -61,32 +66,44 @@ import com.google.firebase.auth.auth
  */
 @Composable
 fun ChatScreen(navController: NavController, channelId: String, channelName: String) {
-    // Scaffold fornece a estrutura básica de layout para a tela.
-    Scaffold(
-        containerColor = Color.Black
-    ) {
-        // Obtém a instância do ViewModel usando Hilt para gerenciamento do ciclo de vida.
+    Scaffold(containerColor = Color.Black) {
         val viewModel: ChatViewModel = hiltViewModel()
+
+        // Estado para controlar a exibição do indicador de progresso
+        val isUploading = remember { mutableStateOf(false) }
+
+        // Launcher para selecionar uma imagem da galeria
+        val imagePickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+            onResult = { uri: Uri? ->
+                uri?.let {
+                    isUploading.value = true
+                    viewModel.sendImageMessage(it, channelId) {
+                        isUploading.value = false
+                    }
+                }
+            }
+        )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(it)
         ) {
-            // Um `LaunchedEffect` é usado para iniciar a escuta de mensagens do canal assim que a tela é composta.
             LaunchedEffect(key1 = true) {
                 viewModel.listenForMessages(channelId)
             }
-            // Coleta o estado das mensagens a partir do ViewModel.
             val messages = viewModel.message.collectAsState()
-
-            // Chama a função composable `ChatMessages` para exibir o conteúdo principal do chat.
             ChatMessages(
                 messages = messages.value,
                 onSendMessage = { message ->
                     viewModel.sendMessage(channelId, message)
                 },
-                channelName = channelName
+                onAttachImageClicked = {
+                    imagePickerLauncher.launch("image/*")
+                },
+                channelName = channelName,
+                isUploading = isUploading.value // Passa o estado de carregamento
             )
         }
     }
@@ -104,39 +121,41 @@ fun ChatScreen(navController: NavController, channelId: String, channelName: Str
 fun ChatMessages(
     channelName: String,
     messages: List<Message>,
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    onAttachImageClicked: () -> Unit,
+    isUploading: Boolean // Novo parâmetro para o estado de carregamento
 ) {
-    // Controlador de teclado para ocultá-lo quando a ação `Done` é acionada.
     val hideKeyboardController = LocalSoftwareKeyboardController.current
-
-    // Estado mutável para armazenar o texto da mensagem.
     val msg = remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // `LazyColumn` para exibir a lista de mensagens de forma performática.
         LazyColumn(modifier = Modifier.weight(1f)) {
-            // Exibe o cabeçalho do canal.
             item {
                 ChannelItem(channelName = channelName, Modifier, onClick = {})
             }
-            // Itera sobre a lista de mensagens para exibir cada uma como um `ChatBubble`.
             items(messages) { message ->
                 ChatBubble(message = message)
             }
         }
-        // Caixa de entrada de texto para o usuário digitar e enviar mensagens.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(DarkGrey)
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(8.dp), verticalAlignment = Alignment.CenterVertically
         ) {
+            // Botão para anexar imagem
+            IconButton(onClick = onAttachImageClicked) {
+                Image(
+                    painter = painterResource(id = R.drawable.attach),
+                    contentDescription = "Anexar imagem"
+                )
+            }
+
             TextField(
                 value = msg.value,
                 onValueChange = { msg.value = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(text = "Escreva sua Mensagem") },
+                placeholder = { Text(text = "Type a message") },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     hideKeyboardController?.hide()
@@ -150,10 +169,11 @@ fun ChatMessages(
                     unfocusedPlaceholderColor = Color.White
                 )
             )
-            // Botão de envio de mensagem.
             IconButton(onClick = {
-                onSendMessage(msg.value)
-                msg.value = ""
+                if (msg.value.isNotBlank()) {
+                    onSendMessage(msg.value)
+                    msg.value = ""
+                }
             }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
@@ -162,9 +182,16 @@ fun ChatMessages(
                 )
             }
         }
+
+        // Indicador de carregamento
+        if (isUploading) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().height(4.dp),
+                color = Purple
+            )
+        }
     }
 }
-
 
 /**
  * Componente de UI para exibir uma única mensagem de chat, em forma de bolha.
