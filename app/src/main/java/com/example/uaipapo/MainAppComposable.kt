@@ -13,6 +13,7 @@ import com.example.uaipapo.feature.auth.signin.SignInScreen
 import com.example.uaipapo.feature.auth.signup.SignUpScreen
 import com.example.uaipapo.feature.home.HomeScreen
 import com.example.uaipapo.feature.chat.ChatScreen
+import com.example.uaipapo.feature.profile.EditProfileScreen
 
 @Composable
 fun MainApp() {
@@ -40,6 +41,9 @@ fun MainApp() {
                 val channelId = it.arguments?.getString("channelId") ?: ""
                 val channelName = it.arguments?.getString("channelName") ?: ""
                 ChatScreen(navController, channelId,channelName)
+            }
+            composable("edit_profile") {
+                EditProfileScreen(navController)
             }
         }
     }

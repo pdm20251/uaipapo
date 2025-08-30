@@ -16,15 +16,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -80,6 +84,30 @@ fun HomeScreen(navController: NavController) {
 
     // O `Scaffold` fornece uma estrutura de layout para a tela.
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "️UaiPapo",
+                        color = Color.Gray,
+                        style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
+                    )
+                },
+                actions = {
+                    // Adicione este IconButton para o botão de edição de perfil
+                    IconButton(onClick = {
+                        navController.navigate("edit_profile")
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Editar Perfil",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkGrey)
+            )
+        },
         floatingActionButton = {
             // Botão flutuante para adicionar um novo canal.
             Box(modifier = Modifier
