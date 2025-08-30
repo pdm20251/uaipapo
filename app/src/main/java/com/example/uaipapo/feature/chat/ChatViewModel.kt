@@ -21,6 +21,7 @@ import com.google.firebase.storage.storage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.util.UUID
@@ -39,6 +40,10 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
      * Expõe a lista de mensagens como um StateFlow de leitura, seguindo a convenção.
      */
     val message = _messages.asStateFlow()
+
+    // Lista de mensagens filtradas que a UI irá exibir
+    private val _filteredMessages = MutableStateFlow<List<Message>>(emptyList())
+    val filteredMessages: StateFlow<List<Message>> = _filteredMessages
 
     // Instância do Firebase Realtime Database.
     private val db = Firebase.database
@@ -122,6 +127,7 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
                     }
                     // Atualiza o StateFlow com a nova lista, o que notifica a UI.
                     _messages.value = list
+                    searchMessages("")
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -175,19 +181,20 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
         )
     }
 
-
     /**
-     * Obtém um token de acesso para autenticação com as APIs do Google.
-     * @return O token de acesso.
+     * Filtra as mensagens com base no texto de busca.
+     * @param query O termo de busca.
+     */
+    fun searchMessages(query: String) {
+        if (query.isBlank()) {
+            _filteredMessages.value = _messages.value
+        } else {
+            val filteredList = _messages.value.filter {
+                it.message?.contains(query, ignoreCase = true) == true
+            }
+            _filteredMessages.value = filteredList
+        }
+    }
 
-    private fun getAccessToken(): String {
-    // Abre o arquivo de credenciais do serviço.
-    val inputStream = context.resources.openRawResource(R.raw.chatter_key)
-    // Cria as credenciais com escopo para o Firebase Cloud Messaging.
-    val googleCreds = GoogleCredentials.fromStream(inputStream)
-    .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
-    // Retorna o token de acesso.
-    return googleCreds.refreshAccessToken().tokenValue
-    }*/
 }
 
