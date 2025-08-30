@@ -42,20 +42,27 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
     private val db = Firebase.database
 
     /**
-     * Envia uma mensagem de texto para um canal específico.
+     * Envia uma mensagem de texto ou imagem para um canal específico.
      * @param channelID O ID do canal para onde a mensagem será enviada.
      * @param messageText O conteúdo da mensagem de texto.
+     * @param image A URL da imagem, se a mensagem for uma imagem.
      */
-    fun sendMessage(channelID: String, messageText: String?) {
+    fun sendMessage(channelID: String, messageText: String?, image: String? = null) {
         // Cria uma nova instância da classe Message com os dados do remetente.
+        val currentUser = Firebase.auth.currentUser
+        if (currentUser == null) {
+            return
+        }
+
         val message = Message(
             db.reference.push().key ?: UUID.randomUUID().toString(),
-            Firebase.auth.currentUser?.uid ?: "",
+            currentUser.uid,
             messageText,
             System.currentTimeMillis(),
-            Firebase.auth.currentUser?.displayName ?: "",
-            null,
-            null
+            currentUser.displayName ?: "Anônimo",
+            currentUser.photoUrl.toString(),
+            image,
+
         )
 
         // Salva a mensagem no Firebase Realtime Database.
@@ -63,7 +70,7 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
             .addOnCompleteListener {
                 if (it.isSuccessful) {
                     // Se a mensagem for enviada com sucesso, envia uma notificação push.
-                    { /* TODO */ }
+                    //postNotificationToUsers(channelID, message.senderName, messageText ?: "")
                 }
             }
     }

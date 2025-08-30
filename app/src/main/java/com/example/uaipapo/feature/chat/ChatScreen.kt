@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -31,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -171,16 +173,12 @@ fun ChatMessages(
  */
 @Composable
 fun ChatBubble(message: Message) {
-    // Determina se a mensagem foi enviada pelo usuário atual.
-    val isCurrentUser = message.senderId == com.google.firebase.Firebase.auth.currentUser?.uid
-    // Define a cor da bolha com base no remetente.
+    val isCurrentUser = message.senderId == Firebase.auth.currentUser?.uid
     val bubbleColor = if (isCurrentUser) {
         Purple
     } else {
         DarkGrey
     }
-
-    // Extrai o nome de usuário (parte do email antes do "@").
     val senderName = message.senderName?.substringBefore("@") ?: "Usuário"
 
     Box(
@@ -188,7 +186,6 @@ fun ChatBubble(message: Message) {
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 8.dp)
     ) {
-        // Alinha a bolha de mensagem para o lado certo da tela.
         val alignment = if (!isCurrentUser) Alignment.CenterStart else Alignment.CenterEnd
         Column(
             modifier = Modifier
@@ -196,7 +193,6 @@ fun ChatBubble(message: Message) {
                 .align(alignment),
             horizontalAlignment = if (!isCurrentUser) Alignment.Start else Alignment.End
         ) {
-            // Pequena caixa de texto com o nome do usuário.
             Text(
                 text = senderName,
                 color = Color.Gray,
@@ -207,16 +203,19 @@ fun ChatBubble(message: Message) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Exibe um avatar para mensagens que não são do usuário atual.
                 if (!isCurrentUser) {
-                    Image(
-                        painter = painterResource(id = R.drawable.friend),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
+                    // Usa AsyncImage para carregar a foto de perfil ou o fallback
+                    AsyncImage(
+                        model = message.senderPhotoUrl,
+                        contentDescription = "Foto de perfil do remetente",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.friend) // Fallback para a imagem padrão
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                // O contêiner da bolha de mensagem.
                 Box(
                     modifier = Modifier
                         .background(
@@ -224,7 +223,6 @@ fun ChatBubble(message: Message) {
                         )
                         .padding(16.dp)
                 ) {
-                    // Se a mensagem contiver uma URL de imagem, exibe a imagem.
                     if (message.imageUrl != null) {
                         AsyncImage(
                             model = message.imageUrl,
@@ -233,7 +231,6 @@ fun ChatBubble(message: Message) {
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Caso contrário, exibe o texto da mensagem.
                         Text(text = message.message?.trim() ?: "", color = Color.White)
                     }
                 }
