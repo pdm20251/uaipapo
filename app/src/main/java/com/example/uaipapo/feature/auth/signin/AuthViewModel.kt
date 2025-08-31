@@ -3,15 +3,15 @@ package com.example.uaipapo.feature.auth.signin
 import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
-import com.example.uaipapo.MainActivity
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.firestore.firestore
+import com.google.firebase.database.database
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,19 +19,23 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
-class SignInViewModel @Inject constructor() : ViewModel() {
+class AuthViewModel @Inject constructor() : ViewModel() {
 
-    private val db = Firebase.firestore
-    private val _state = MutableStateFlow<SignInState>(SignInState.Nothing)
+    private val _state = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
+    private val database = Firebase.database.reference.child("users")
     val state = _state.asStateFlow()
 
     val auth = FirebaseAuth.getInstance()
-    private var userCredential: PhoneAuthCredential? = null
+    var currentUser: FirebaseUser? = null
     var verificationId: String? = null
     var resendToken: PhoneAuthProvider.ForceResendingToken? = null
 
+    init {
+        checkAuthStatus()
+    }
+
     fun verifyOtpAndSignIn(enteredOTP: String) {
-        _state.value = SignInState.Loading
+        _state.value = AuthState.Loading
 
         Log.d("TAG", "verificationId: $verificationId")
 
@@ -39,60 +43,44 @@ class SignInViewModel @Inject constructor() : ViewModel() {
 
         if(currentVerficationId != null) {
             val credential = PhoneAuthProvider.getCredential(verificationId!!, enteredOTP)
-
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        task.result.user?.let {
-                            _state.value = SignInState.Success
-                            return@addOnCompleteListener
-                        }
-                        _state.value = SignInState.Error
-                    } else {
-                        Log.w("TAG", "signInWithCredential:failure", task.exception)
-                        if (task.exception is FirebaseAuthInvalidCredentialsException) {
-                            _state.value = SignInState.CodeError
-                        }
-                    }
-                }
-
-            userCredential = credential
+            signInWithCredential(credential)
         }
     }
 
-    fun autoSignIn(credential: PhoneAuthCredential){
-        _state.value = SignInState.Loading
-
-        Log.d("TAG", "entering auto signin")
+    fun signInWithCredential(credential: PhoneAuthCredential){
+        _state.value = AuthState.Loading
 
         auth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     task.result.user?.let {
-                        _state.value = SignInState.Success
+                        currentUser = task.result.user
+                        _state.value = AuthState.WaitingForName
                         return@addOnCompleteListener
                     }
-                    _state.value = SignInState.Error
+                    _state.value = AuthState.Error
                 } else {
-                    Log.d("TAG", "Auto SignIn error")
+                    Log.w("TAG", "signInWithCredential:failure", task.exception)
+                    if (task.exception is FirebaseAuthInvalidCredentialsException) {
+                        _state.value = AuthState.CodeError
+                    }
                 }
             }
     }
 
     fun sendOtp(activity: Activity, phoneNumber: String, isResend: Boolean) {
-        _state.value = SignInState.Loading
+        _state.value = AuthState.Loading
 
         val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
 
             override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                _state.value = SignInState.Success
-                userCredential = credential
-                autoSignIn(credential)
+                _state.value = AuthState.WaitingForName
+                signInWithCredential(credential)
                 Log.d("TAG", "onVerificationCompleted:$credential")
             }
 
             override fun onVerificationFailed(e: FirebaseException) {
-                _state.value = SignInState.Error
+                _state.value = AuthState.Error
                 Log.w("TAG", "onVerificationFailed", e)
             }
 
@@ -105,7 +93,7 @@ class SignInViewModel @Inject constructor() : ViewModel() {
                 verificationId = code
                 resendToken = token
 
-                _state.value = SignInState.CodeSent
+                _state.value = AuthState.CodeSent
             }
         }
 
@@ -130,14 +118,50 @@ class SignInViewModel @Inject constructor() : ViewModel() {
         val phoneAuthOptions = optionsBuilder.build()
         PhoneAuthProvider.verifyPhoneNumber(phoneAuthOptions)
     }
+
+    fun updateUserName(name: String){
+        if(currentUser != null) {
+            val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                .setDisplayName(name)
+                .build()
+            currentUser!!.updateProfile(profileUpdates)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        database.child(currentUser!!.uid).child("name").setValue(name)
+                            .addOnCompleteListener { dbTask ->
+                                _state.value = AuthState.Authenticated
+                            }
+                    } else {
+                        _state.value = AuthState.Error
+                    }
+            }
+        } else {
+            _state.value = AuthState.Error
+        }
+    }
+
+    fun signOut(){
+        auth.signOut()
+        _state.value = AuthState.Unauthenticated
+    }
+
+    fun checkAuthStatus(){
+        if(currentUser == null){
+            _state.value = AuthState.Unauthenticated
+        } else{
+            _state.value = AuthState.Authenticated
+        }
+    }
 }
 
-sealed class SignInState {
-    object Nothing : SignInState()
-    object Loading : SignInState()
-    object CodeSent : SignInState()
-    object Verified : SignInState()
-    object Success : SignInState()
-    object CodeError : SignInState()
-    object Error : SignInState()
+sealed class AuthState {
+
+    object Unauthenticated : AuthState()
+    object Loading : AuthState()
+    object CodeSent : AuthState()
+    object Verified : AuthState()
+    object CodeError : AuthState()
+    object Error : AuthState()
+    object WaitingForName : AuthState()
+    object Authenticated : AuthState()
 }

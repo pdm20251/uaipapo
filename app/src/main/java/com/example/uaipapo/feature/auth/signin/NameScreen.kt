@@ -1,7 +1,5 @@
 package com.example.uaipapo.feature.auth.signin
 
-import android.app.Activity
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,8 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.KeyboardType.Companion.Number
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -44,11 +47,12 @@ import com.example.uaipapo.ui.theme.DarkRed
 import com.example.uaipapo.ui.theme.LighGray
 import com.example.uaipapo.ui.theme.White
 
+
 @Composable
-fun SignInScreen(navController: NavController, viewModel: AuthViewModel) {
+fun NameScreen(navController: NavController, viewModel: AuthViewModel, phoneNumber: String) {
 
     val uiState = viewModel.state.collectAsState()
-    var phonenumber by remember {
+    var name by remember {
         mutableStateOf("")
     }
 
@@ -56,15 +60,12 @@ fun SignInScreen(navController: NavController, viewModel: AuthViewModel) {
     LaunchedEffect(key1 = uiState.value) {
 
         when (uiState.value) {
-            is AuthState.CodeSent -> {
-                navController.navigate("otp/${phonenumber.replace("(", "")
-                    .replace(")", "")
-                    .replace("-", "")
-                    .replace(" ", "")}")
+            is AuthState.Authenticated -> {
+                navController.navigate("home")
             }
 
             is AuthState.Error -> {
-                Toast.makeText(context, "Sign In failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Verification Failed", Toast.LENGTH_SHORT).show()
             }
 
             else -> {}
@@ -81,37 +82,26 @@ fun SignInScreen(navController: NavController, viewModel: AuthViewModel) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(200.dp)
-                    .background(Color.White)
-            )
 
-            Spacer(modifier = Modifier.size(30.dp))
+            Text(text = "Your name", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, fontSize = 36.sp)
+            Text(text = "+${phoneNumber.take(2)} (${phoneNumber.drop(2).take(2)}) ${phoneNumber.drop(4).take(5)}-${phoneNumber.drop(9)}", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
 
-            OutlinedTextField(value = "+$phonenumber",
-                onValueChange = { newValue ->
-                    // Ensure the fixed prefix is always present
-                    if (newValue.startsWith("+")) {
-                        phonenumber = newValue.substringAfter("+")
-                    } else {
-                        // If the user somehow removes the prefix, reset
-                        phonenumber = ""
-                    }
+            Spacer(Modifier.size(16.dp))
+
+            OutlinedTextField(value = name,
+                onValueChange = {
+                    name = it
                 },
-                modifier = Modifier.fillMaxWidth(0.8f),
-                label = { Text(text = "Phone Number") },
+                modifier = Modifier.fillMaxWidth(0.6f),
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = White,
                     focusedContainerColor = White,
-                    errorContainerColor = White,
+                    errorContainerColor = DarkRed,
                     focusedLabelColor = BrightRed,
                     focusedIndicatorColor = BrightRed,
                     cursorColor = BrightRed,
                     focusedTextColor = BrightRed
-                ),
+                )
             )
 
             Spacer(modifier = Modifier.size(16.dp))
@@ -120,27 +110,20 @@ fun SignInScreen(navController: NavController, viewModel: AuthViewModel) {
                 CircularProgressIndicator(color = BrightRed)
             } else {
                 Button(
-                    onClick = {
-                        val currentActivity = context as? Activity
-
-                        if(currentActivity != null) {
-                            viewModel.sendOtp(
-                                currentActivity,
-                                "+${phonenumber.replace("(", "")
-                                    .replace(")", "")
-                                    .replace("-", "")
-                                    .replace(" ", "")}",
-                                false
-                            )
-                        } else {
-                            Log.e("SignInScreen", "Current activity is null.")
-                        }
-                    },
+                    onClick = { viewModel.updateUserName(name) },
                     modifier = Modifier.fillMaxWidth(0.6f),
-                    enabled = phonenumber.length >= 10 && (uiState.value == AuthState.Unauthenticated || uiState.value == AuthState.Error),
+                    enabled = name.length > 2 && (uiState.value == AuthState.WaitingForName),
                     colors = ButtonDefaults.buttonColors(containerColor = BrightRed, disabledContainerColor = LighGray)
                 ) {
                     Text(text = "Next")
+                }
+
+                TextButton(onClick = { }) {
+                    Text(text = "Resend code in s", color = BrightRed)
+                }
+
+                TextButton(onClick = { navController.navigate("signin") }) {
+                    Text(text = "Wrong number?", fontStyle = FontStyle.Italic, color = BrightRed)
                 }
             }
         }

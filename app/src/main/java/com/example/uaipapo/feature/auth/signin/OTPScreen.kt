@@ -47,7 +47,7 @@ import com.example.uaipapo.ui.theme.White
 
 
 @Composable
-fun OTPScreen(navController: NavController, viewModel: SignInViewModel, phoneNumber: String) {
+fun OTPScreen(navController: NavController, viewModel: AuthViewModel, phoneNumber: String) {
 
     val uiState = viewModel.state.collectAsState()
     var otpCode by remember {
@@ -58,11 +58,11 @@ fun OTPScreen(navController: NavController, viewModel: SignInViewModel, phoneNum
     LaunchedEffect(key1 = uiState.value) {
 
         when (uiState.value) {
-            is SignInState.Success -> {
-                navController.navigate("home")
+            is AuthState.WaitingForName -> {
+                navController.navigate("name/$phoneNumber")
             }
 
-            is SignInState.Error -> {
+            is AuthState.Error -> {
                 Toast.makeText(context, "Verification Failed", Toast.LENGTH_SHORT).show()
             }
 
@@ -114,13 +114,13 @@ fun OTPScreen(navController: NavController, viewModel: SignInViewModel, phoneNum
 
             Spacer(modifier = Modifier.size(16.dp))
 
-            if (uiState.value == SignInState.Loading) {
+            if (uiState.value == AuthState.Loading) {
                 CircularProgressIndicator(color = BrightRed)
             } else {
                 Button(
                     onClick = { viewModel.verifyOtpAndSignIn(otpCode) },
                     modifier = Modifier.fillMaxWidth(0.6f),
-                    enabled = otpCode.length == 6 && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error || uiState.value == SignInState.CodeSent),
+                    enabled = otpCode.length == 6 && (uiState.value == AuthState.CodeSent),
                     colors = ButtonDefaults.buttonColors(containerColor = BrightRed, disabledContainerColor = LighGray)
                 ) {
                     Text(text = "Next")

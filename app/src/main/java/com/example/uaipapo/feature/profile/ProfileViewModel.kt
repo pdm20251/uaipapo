@@ -1,11 +1,14 @@
 package com.example.uaipapo.feature.profile
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.auth.ktx.userProfileChangeRequest
+import com.google.firebase.database.database
 import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import com.google.firebase.storage.storage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
