@@ -1,61 +1,118 @@
 package com.example.uaipapo.feature.auth.signin
 
+import android.app.Activity
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.example.uaipapo.MainActivity
+import com.google.firebase.Firebase
+import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.firestore.firestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-/**
- * ViewModel responsável pela lógica de autenticação do usuário.
- * Gerencia a comunicação com o Firebase e o estado da UI de login.
- */
 @HiltViewModel
 class SignInViewModel @Inject constructor() : ViewModel() {
 
-    // MutableStateFlow que armazena o estado atual da tela de login.
+    private val db = Firebase.firestore
     private val _state = MutableStateFlow<SignInState>(SignInState.Nothing)
-
-    // Expõe o estado como um StateFlow de leitura para a UI.
     val state = _state.asStateFlow()
 
-    /**
-     * Inicia o processo de login usando email e senha.
-     * Atualiza o estado da UI para refletir o progresso da operação.
-     * @param email O email fornecido pelo usuário.
-     * @param password A senha fornecida pelo usuário.
-     */
-    fun signIn(email: String, password: String) {
-        // Define o estado como "carregando" para mostrar um indicador na UI.
+    val auth = FirebaseAuth.getInstance()
+    private var userCredential: PhoneAuthCredential? = null
+    var verificationId: String? = null
+    var resendToken: PhoneAuthProvider.ForceResendingToken? = null
+
+    fun signIn(enteredOTP: String) {
+        _state.value = SignInState.Loading
+        Log.d("TAG", "verificationId: $verificationId")
+        if(verificationId != null) {
+            userCredential = PhoneAuthProvider.getCredential(verificationId!!, enteredOTP)
+        }
+
+        userCredential?.let{
+            auth.signInWithCredential(userCredential!!)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        task.result.user?.let {
+                            _state.value = SignInState.Success
+                            return@addOnCompleteListener
+                        }
+                        _state.value = SignInState.Error
+                    } else {
+                        Log.w("TAG", "signInWithCredential:failure", task.exception)
+                        if (task.exception is FirebaseAuthInvalidCredentialsException) {
+                            _state.value = SignInState.CodeError
+                        }
+                    }
+                }
+        }
+    }
+
+    fun sendOtp(activity: Activity, phoneNumber: String, isResend: Boolean) {
         _state.value = SignInState.Loading
 
-        // Tenta autenticar o usuário com o Firebase.
-        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-                // Verifica o resultado da autenticação.
-                if (task.isSuccessful && task.result?.user != null) {
-                    // Autenticação bem-sucedida.
-                    _state.value = SignInState.Success
-                } else {
-                    // Autenticação falhou.
-                    _state.value = SignInState.Error
-                }
+        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                _state.value = SignInState.Success
+                userCredential = credential
+                Log.d("TAG", "onVerificationCompleted:$credential")
             }
+
+            override fun onVerificationFailed(e: FirebaseException) {
+                _state.value = SignInState.Error
+                Log.w("TAG", "onVerificationFailed", e)
+            }
+
+            override fun onCodeSent(
+                code: String,
+                token: PhoneAuthProvider.ForceResendingToken,
+            ) {
+                Log.d("TAG", "onCodeSent:$code")
+
+                verificationId = code
+                resendToken = token
+
+                _state.value = SignInState.CodeSent
+            }
+        }
+
+        val optionsBuilder = PhoneAuthOptions.newBuilder(auth)
+            .setPhoneNumber(phoneNumber) // Phone number to verify
+            .setTimeout(60L, TimeUnit.SECONDS) // Timeout and unit
+            .setActivity(activity)
+            .setCallbacks(callbacks) // OnVerificationStateChangedCallbacks
+
+        if (isResend) {
+            resendToken?.let { token ->
+                optionsBuilder.setForceResendingToken(token)
+                Log.d("SignInViewModel", "Resending OTP with token.")
+            } ?: run {
+                Log.w(
+                    "SignInViewModel",
+                    "isResend is true but resendToken is null. Sending as new OTP."
+                )
+            }
+        }
+
+        val phoneAuthOptions = optionsBuilder.build()
+        PhoneAuthProvider.verifyPhoneNumber(phoneAuthOptions)
     }
 }
 
-/**
- * Classe selada que define os estados possíveis da tela de login,
- * garantindo que a UI reaja a cada um de forma controlada.
- */
 sealed class SignInState {
-    // Estado inicial.
     object Nothing : SignInState()
-    // Estado de carregamento.
     object Loading : SignInState()
-    // Estado de sucesso.
+    object CodeSent : SignInState()
     object Success : SignInState()
-    // Estado de erro.
+    object CodeError : SignInState()
     object Error : SignInState()
 }

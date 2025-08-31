@@ -1,22 +1,26 @@
-package com.example.uaipapo.ui.feature.auth.signin
+package com.example.uaipapo.feature.auth.signin
 
+import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,7 +39,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.uaipapo.R
-import com.example.uaipapo.ui.feature.auth.signin.SignInViewModel.SignInState
+import com.example.uaipapo.ui.theme.BrightRed
+import com.example.uaipapo.ui.theme.DarkRed
+import com.example.uaipapo.ui.theme.LighGray
+import com.example.uaipapo.ui.theme.White
 
 @Composable
 fun SignInScreen(navController: NavController) {
@@ -51,7 +58,10 @@ fun SignInScreen(navController: NavController) {
 
         when (uiState.value) {
             is SignInState.CodeSent -> {
-                navController.navigate("otp")
+                navController.navigate("otp/${phonenumber.replace("(", "")
+                    .replace(")", "")
+                    .replace("-", "")
+                    .replace(" ", "")}")
             }
 
             is SignInState.Error -> {
@@ -80,30 +90,63 @@ fun SignInScreen(navController: NavController) {
                     .background(Color.White)
             )
 
-            OutlinedTextField(value = phonenumber,
-                onValueChange = {
-                    phonenumber = it
+            Spacer(modifier = Modifier.size(30.dp))
+
+            OutlinedTextField(value = "+$phonenumber",
+                onValueChange = { newValue ->
+                    // Ensure the fixed prefix is always present
+                    if (newValue.startsWith("+")) {
+                        phonenumber = newValue.substringAfter("+")
+                    } else {
+                        // If the user somehow removes the prefix, reset
+                        phonenumber = ""
+                    }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(0.8f),
                 label = { Text(text = "Phone Number") },
-                placeholder = { Text(text = "+55 (34) 99999-9999")}
+                placeholder = { Text(text = "+55 (34) 99999-9999") },
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = White,
+                    focusedContainerColor = White,
+                    errorContainerColor = White,
+                    focusedLabelColor = BrightRed,
+                    focusedIndicatorColor = BrightRed,
+                    cursorColor = BrightRed,
+                    focusedTextColor = BrightRed
+                ),
             )
 
             Spacer(modifier = Modifier.size(16.dp))
 
             if (uiState.value == SignInState.Loading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = BrightRed)
             } else {
                 Button(
-                    onClick = { viewModel.sendOtp(phonenumber, false) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = phonenumber.isNotEmpty() && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error)
+                    onClick = {
+                        val currentActivity = context as? Activity
+
+                        if(currentActivity != null) {
+                            viewModel.sendOtp(
+                                currentActivity,
+                                "+${phonenumber.replace("(", "")
+                                    .replace(")", "")
+                                    .replace("-", "")
+                                    .replace(" ", "")}",
+                                false
+                            )
+                        } else {
+                            Log.e("SignInScreen", "Current activity is null.")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(0.6f),
+                    enabled = phonenumber.length >= 11 && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrightRed, disabledContainerColor = LighGray)
                 ) {
                     Text(text = "Next")
                 }
 
                 TextButton(onClick = { navController.navigate("signup") }) {
-                    Text(text = "Don't have an account? Sign Up")
+                    Text(text = "Don't have an account? Sign Up", color = BrightRed)
                 }
             }
         }

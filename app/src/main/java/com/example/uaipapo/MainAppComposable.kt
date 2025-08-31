@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.uaipapo.feature.auth.signin.OTPScreen
 import com.example.uaipapo.feature.auth.signin.SignInScreen
 import com.example.uaipapo.feature.auth.signup.SignUpScreen
 import com.example.uaipapo.feature.home.HomeScreen
@@ -22,6 +23,13 @@ fun MainApp() {
 
             composable("login") {
                 SignInScreen(navController)
+            }
+            composable("otp/{phoneNumber}", arguments = listOf(
+                navArgument("phoneNumber") {
+                    type = NavType.StringType
+                }
+            )){
+                OTPScreen(navController,phoneNumber = it.arguments?.getString("phoneNumber") ?: "")
             }
             composable("signup") {
                 SignUpScreen(navController)

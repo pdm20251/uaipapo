@@ -1,22 +1,23 @@
-package com.example.uaipapo.ui.feature.auth.signin
+package com.example.uaipapo.feature.auth.signin
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,13 +32,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.KeyboardType.Companion.Number
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.uaipapo.R
-import com.example.uaipapo.ui.feature.auth.signin.SignInViewModel.SignInState
+import com.example.uaipapo.ui.theme.BrightRed
+import com.example.uaipapo.ui.theme.LighGray
+import com.example.uaipapo.ui.theme.White
 
 
 @Composable
@@ -53,7 +59,7 @@ fun OTPScreen(navController: NavController, phoneNumber: String) {
     LaunchedEffect(key1 = uiState.value) {
 
         when (uiState.value) {
-            is SignInState.Verified -> {
+            is SignInState.Success -> {
                 navController.navigate("home")
             }
 
@@ -83,40 +89,50 @@ fun OTPScreen(navController: NavController, phoneNumber: String) {
                     .background(Color.White)
             )
 
-            Text(text = "We sent a verification code to $phoneNumber", fontWeight = FontWeight.Bold)
+            Spacer(Modifier.size(16.dp))
+
+            Text(text = "Verification code sent to +$phoneNumber", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
 
             OutlinedTextField(value = otpCode,
                 onValueChange = {
-                    if (it.length == 6) {
+                    if (it.length <= 6) {
                         otpCode = it
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(0.6f),
                 label = { Text(text = "Verification Code") },
-                placeholder = { Text(text = "654321")}
+                placeholder = { Text(text = "654321")},
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = White,
+                    focusedContainerColor = White,
+                    errorContainerColor = White,
+                    focusedLabelColor = BrightRed,
+                    focusedIndicatorColor = BrightRed,
+                    cursorColor = BrightRed,
+                    focusedTextColor = BrightRed
+                )
             )
 
             Spacer(modifier = Modifier.size(16.dp))
 
             if (uiState.value == SignInState.Loading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = BrightRed)
             } else {
                 Button(
-                    onClick = { viewModel.signIn(phoneNumber) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = otpCode.isNotEmpty() && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error)
+                    onClick = { viewModel.signIn(otpCode) },
+                    modifier = Modifier.fillMaxWidth(0.6f),
+                    enabled = otpCode.length == 6 && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrightRed, disabledContainerColor = LighGray)
                 ) {
                     Text(text = "Next")
                 }
 
                 TextButton(onClick = { }) {
-                    Text(text = "Resend code")
+                    Text(text = "Resend code in s", color = BrightRed)
                 }
 
-                Spacer(modifier = Modifier.size(4.dp))
-
                 TextButton(onClick = { navController.navigate("signin") }) {
-                    Text(text = "Wrong number?", fontStyle = FontStyle.Italic)
+                    Text(text = "Wrong number?", fontStyle = FontStyle.Italic, color = BrightRed)
                 }
             }
         }
