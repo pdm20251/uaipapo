@@ -11,25 +11,26 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.uaipapo.feature.auth.signin.OTPScreen
 import com.example.uaipapo.feature.auth.signin.SignInScreen
+import com.example.uaipapo.feature.auth.signin.SignInViewModel
 import com.example.uaipapo.feature.auth.signup.SignUpScreen
 import com.example.uaipapo.feature.home.HomeScreen
 import com.example.uaipapo.feature.chat.ChatScreen
 
 @Composable
-fun MainApp() {
+fun MainApp(authViewModel: SignInViewModel) {
     Surface(modifier = Modifier.fillMaxSize()) {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "login") {
 
             composable("login") {
-                SignInScreen(navController)
+                SignInScreen(navController, authViewModel)
             }
             composable("otp/{phoneNumber}", arguments = listOf(
                 navArgument("phoneNumber") {
                     type = NavType.StringType
                 }
             )){
-                OTPScreen(navController,phoneNumber = it.arguments?.getString("phoneNumber") ?: "")
+                OTPScreen(navController, authViewModel, phoneNumber = it.arguments?.getString("phoneNumber") ?: "")
             }
             composable("signup") {
                 SignUpScreen(navController)

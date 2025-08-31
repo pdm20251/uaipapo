@@ -45,9 +45,8 @@ import com.example.uaipapo.ui.theme.LighGray
 import com.example.uaipapo.ui.theme.White
 
 @Composable
-fun SignInScreen(navController: NavController) {
+fun SignInScreen(navController: NavController, viewModel: SignInViewModel) {
 
-    val viewModel: SignInViewModel = hiltViewModel()
     val uiState = viewModel.state.collectAsState()
     var phonenumber by remember {
         mutableStateOf("")
@@ -104,7 +103,7 @@ fun SignInScreen(navController: NavController) {
                 },
                 modifier = Modifier.fillMaxWidth(0.8f),
                 label = { Text(text = "Phone Number") },
-                placeholder = { Text(text = "+55 (34) 99999-9999") },
+                placeholder = { Text(text = "Ex.: +55 (34) 99999-9999") },
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = White,
                     focusedContainerColor = White,
@@ -151,10 +150,4 @@ fun SignInScreen(navController: NavController) {
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewSignInScreen() {
-    SignInScreen(navController = rememberNavController())
 }

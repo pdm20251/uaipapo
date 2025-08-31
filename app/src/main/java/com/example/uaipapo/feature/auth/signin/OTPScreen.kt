@@ -47,9 +47,8 @@ import com.example.uaipapo.ui.theme.White
 
 
 @Composable
-fun OTPScreen(navController: NavController, phoneNumber: String) {
+fun OTPScreen(navController: NavController, viewModel: SignInViewModel, phoneNumber: String) {
 
-    val viewModel: SignInViewModel = hiltViewModel()
     val uiState = viewModel.state.collectAsState()
     var otpCode by remember {
         mutableStateOf("")
@@ -101,7 +100,7 @@ fun OTPScreen(navController: NavController, phoneNumber: String) {
                 },
                 modifier = Modifier.fillMaxWidth(0.6f),
                 label = { Text(text = "Verification Code") },
-                placeholder = { Text(text = "654321")},
+                placeholder = { Text(text = "Ex.: 654321")},
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = White,
                     focusedContainerColor = White,
@@ -119,9 +118,9 @@ fun OTPScreen(navController: NavController, phoneNumber: String) {
                 CircularProgressIndicator(color = BrightRed)
             } else {
                 Button(
-                    onClick = { viewModel.signIn(otpCode) },
+                    onClick = { viewModel.verifyOtpAndSignIn(otpCode) },
                     modifier = Modifier.fillMaxWidth(0.6f),
-                    enabled = otpCode.length == 6 && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error),
+                    enabled = otpCode.length == 6 && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error || uiState.value == SignInState.CodeSent),
                     colors = ButtonDefaults.buttonColors(containerColor = BrightRed, disabledContainerColor = LighGray)
                 ) {
                     Text(text = "Next")
@@ -137,10 +136,4 @@ fun OTPScreen(navController: NavController, phoneNumber: String) {
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewOTPScreen() {
-    OTPScreen(navController = rememberNavController(), "+5534999999999")
 }

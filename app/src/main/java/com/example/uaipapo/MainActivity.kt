@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.uaipapo.feature.auth.signin.SignInViewModel
 import com.example.uaipapo.ui.theme.UaipapoTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -18,10 +19,14 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val authViewModel = SignInViewModel()
+
         enableEdgeToEdge()
         setContent {
+
             UaipapoTheme {
-                MainApp()
+                MainApp(authViewModel)
             }
         }
     }

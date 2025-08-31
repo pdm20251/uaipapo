@@ -30,15 +30,17 @@ class SignInViewModel @Inject constructor() : ViewModel() {
     var verificationId: String? = null
     var resendToken: PhoneAuthProvider.ForceResendingToken? = null
 
-    fun signIn(enteredOTP: String) {
+    fun verifyOtpAndSignIn(enteredOTP: String) {
         _state.value = SignInState.Loading
-        Log.d("TAG", "verificationId: $verificationId")
-        if(verificationId != null) {
-            userCredential = PhoneAuthProvider.getCredential(verificationId!!, enteredOTP)
-        }
 
-        userCredential?.let{
-            auth.signInWithCredential(userCredential!!)
+        Log.d("TAG", "verificationId: $verificationId")
+
+        val currentVerficationId = verificationId
+
+        if(currentVerficationId != null) {
+            val credential = PhoneAuthProvider.getCredential(verificationId!!, enteredOTP)
+
+            auth.signInWithCredential(credential)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         task.result.user?.let {
@@ -53,7 +55,28 @@ class SignInViewModel @Inject constructor() : ViewModel() {
                         }
                     }
                 }
+
+            userCredential = credential
         }
+    }
+
+    fun autoSignIn(credential: PhoneAuthCredential){
+        _state.value = SignInState.Loading
+
+        Log.d("TAG", "entering auto signin")
+
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    task.result.user?.let {
+                        _state.value = SignInState.Success
+                        return@addOnCompleteListener
+                    }
+                    _state.value = SignInState.Error
+                } else {
+                    Log.d("TAG", "Auto SignIn error")
+                }
+            }
     }
 
     fun sendOtp(activity: Activity, phoneNumber: String, isResend: Boolean) {
@@ -64,6 +87,7 @@ class SignInViewModel @Inject constructor() : ViewModel() {
             override fun onVerificationCompleted(credential: PhoneAuthCredential) {
                 _state.value = SignInState.Success
                 userCredential = credential
+                autoSignIn(credential)
                 Log.d("TAG", "onVerificationCompleted:$credential")
             }
 
@@ -112,6 +136,7 @@ sealed class SignInState {
     object Nothing : SignInState()
     object Loading : SignInState()
     object CodeSent : SignInState()
+    object Verified : SignInState()
     object Success : SignInState()
     object CodeError : SignInState()
     object Error : SignInState()
