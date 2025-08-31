@@ -9,28 +9,20 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.uaipapo.feature.auth.signin.OTPScreen
 import com.example.uaipapo.feature.auth.signin.SignInScreen
-import com.example.uaipapo.feature.auth.signin.SignInViewModel
 import com.example.uaipapo.feature.auth.signup.SignUpScreen
 import com.example.uaipapo.feature.home.HomeScreen
 import com.example.uaipapo.feature.chat.ChatScreen
+import com.example.uaipapo.feature.profile.EditProfileScreen
 
 @Composable
-fun MainApp(authViewModel: SignInViewModel) {
+fun MainApp() {
     Surface(modifier = Modifier.fillMaxSize()) {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "login") {
 
             composable("login") {
-                SignInScreen(navController, authViewModel)
-            }
-            composable("otp/{phoneNumber}", arguments = listOf(
-                navArgument("phoneNumber") {
-                    type = NavType.StringType
-                }
-            )){
-                OTPScreen(navController, authViewModel, phoneNumber = it.arguments?.getString("phoneNumber") ?: "")
+                SignInScreen(navController)
             }
             composable("signup") {
                 SignUpScreen(navController)
@@ -49,6 +41,9 @@ fun MainApp(authViewModel: SignInViewModel) {
                 val channelId = it.arguments?.getString("channelId") ?: ""
                 val channelName = it.arguments?.getString("channelName") ?: ""
                 ChatScreen(navController, channelId,channelName)
+            }
+            composable("edit_profile") {
+                EditProfileScreen(navController)
             }
         }
     }

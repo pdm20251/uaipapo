@@ -1,5 +1,8 @@
 package com.example.uaipapo.feature.chat
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -8,34 +11,46 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -57,39 +72,101 @@ import com.google.firebase.auth.auth
  * @param channelId O ID do canal de chat atual.
  * @param channelName O nome do canal de chat atual.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(navController: NavController, channelId: String, channelName: String) {
-    // Scaffold fornece a estrutura básica de layout para a tela.
-    Scaffold(
-        containerColor = Color.Black
-    ) {
-        // Obtém a instância do ViewModel usando Hilt para gerenciamento do ciclo de vida.
-        val viewModel: ChatViewModel = hiltViewModel()
+    val viewModel: ChatViewModel = hiltViewModel()
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(it)
-        ) {
-            // Um `LaunchedEffect` é usado para iniciar a escuta de mensagens do canal assim que a tela é composta.
-            LaunchedEffect(key1 = true) {
-                viewModel.listenForMessages(channelId)
+    // Estado para controlar a exibição do indicador de progresso
+    val isUploading = remember { mutableStateOf(false) }
+
+    // Estados para a barra de busca
+    var showSearchBar by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
+
+    // Launcher para selecionar uma imagem da galeria
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                isUploading.value = true
+                viewModel.sendImageMessage(it, channelId) {
+                    isUploading.value = false
+                }
             }
-            // Coleta o estado das mensagens a partir do ViewModel.
-            val messages = viewModel.message.collectAsState()
-
-            // Chama a função composable `ChatMessages` para exibir o conteúdo principal do chat.
-            ChatMessages(
-                messages = messages.value,
-                onSendMessage = { message ->
-                    viewModel.sendMessage(channelId, message)
-                },
-                channelName = channelName
-            )
         }
-    }
-}
+    )
 
+    Scaffold(
+        containerColor = Color.Black,
+        topBar = {
+            TopAppBar(
+                title = { Text(text = channelName, color = Color.White) },
+                actions = {
+                    // Botão para mostrar/ocultar a barra de busca
+                    IconButton(onClick = {
+                        showSearchBar = !showSearchBar
+                        if (!showSearchBar) {
+                            searchText = ""
+                            viewModel.searchMessages("")
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = "Buscar",
+                            tint = Color.White
+                        )
+                    }
+                }
+            )
+        },
+        content = { paddingValues -> // O nome do parâmetro deve ser usado
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues) // Correção aqui: use o padding fornecido
+            ) {
+                LaunchedEffect(key1 = true) {
+                    viewModel.listenForMessages(channelId)
+                }
+
+                // A barra de busca só é exibida se showSearchBar for verdadeiro
+                if (showSearchBar) {
+                    TextField(
+                        value = searchText,
+                        onValueChange = { newValue ->
+                            searchText = newValue
+                            viewModel.searchMessages(newValue)
+                        },
+                        placeholder = { Text("Buscar mensagens...", color = Color.White) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        colors = TextFieldDefaults.colors().copy(
+                            focusedContainerColor = Color.Cyan,
+                            unfocusedContainerColor = Color.Cyan,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+                }
+
+                val messages = viewModel.filteredMessages.collectAsState() // Use filteredMessages
+                ChatMessages(
+                    messages = messages.value,
+                    onSendMessage = { message ->
+                        viewModel.sendMessage(channelId, message)
+                    },
+                    onAttachImageClicked = {
+                        imagePickerLauncher.launch("image/*")
+                    },
+                    searchText = searchText,
+                    channelName = channelName, // Este parâmetro não é mais usado por ChatMessages
+                    isUploading = isUploading.value
+                )
+            }
+        })
+}
 
 /**
  * Componente principal do chat que contém a lista de mensagens e a caixa de entrada de texto.
@@ -100,41 +177,41 @@ fun ChatScreen(navController: NavController, channelId: String, channelName: Str
  */
 @Composable
 fun ChatMessages(
-    channelName: String,
+    channelName: String, // Este parâmetro pode ser removido, pois a TopBar já exibe o nome
     messages: List<Message>,
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    onAttachImageClicked: () -> Unit,
+    isUploading: Boolean, // Estado de carregamento da imagem anexa
+    searchText: String
 ) {
-    // Controlador de teclado para ocultá-lo quando a ação `Done` é acionada.
     val hideKeyboardController = LocalSoftwareKeyboardController.current
-
-    // Estado mutável para armazenar o texto da mensagem.
     val msg = remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // `LazyColumn` para exibir a lista de mensagens de forma performática.
         LazyColumn(modifier = Modifier.weight(1f)) {
-            // Exibe o cabeçalho do canal.
-            item {
-                ChannelItem(channelName = channelName, Modifier, onClick = {})
-            }
-            // Itera sobre a lista de mensagens para exibir cada uma como um `ChatBubble`.
+            // Removido o item com ChannelItem para evitar a duplicação do nome do canal
             items(messages) { message ->
-                ChatBubble(message = message)
+                ChatBubble(message = message, searchText = searchText)
             }
         }
-        // Caixa de entrada de texto para o usuário digitar e enviar mensagens.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(DarkGrey)
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(8.dp), verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(onClick = onAttachImageClicked) {
+                Image(
+                    painter = painterResource(id = R.drawable.attach),
+                    contentDescription = "Anexar imagem"
+                )
+            }
+
             TextField(
                 value = msg.value,
                 onValueChange = { msg.value = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(text = "Escreva sua Mensagem") },
+                placeholder = { Text(text = "Escreva...") },
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     hideKeyboardController?.hide()
@@ -148,10 +225,11 @@ fun ChatMessages(
                     unfocusedPlaceholderColor = Color.White
                 )
             )
-            // Botão de envio de mensagem.
             IconButton(onClick = {
-                onSendMessage(msg.value)
-                msg.value = ""
+                if (msg.value.isNotBlank()) {
+                    onSendMessage(msg.value)
+                    msg.value = ""
+                }
             }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
@@ -160,9 +238,17 @@ fun ChatMessages(
                 )
             }
         }
+
+        if (isUploading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp),
+                color = Purple
+            )
+        }
     }
 }
-
 
 /**
  * Componente de UI para exibir uma única mensagem de chat, em forma de bolha.
@@ -170,17 +256,9 @@ fun ChatMessages(
  * @param message O objeto `Message` a ser exibido.
  */
 @Composable
-fun ChatBubble(message: Message) {
-    // Determina se a mensagem foi enviada pelo usuário atual.
-    val isCurrentUser = message.senderId == com.google.firebase.Firebase.auth.currentUser?.uid
-    // Define a cor da bolha com base no remetente.
-    val bubbleColor = if (isCurrentUser) {
-        Purple
-    } else {
-        DarkGrey
-    }
-
-    // Extrai o nome de usuário (parte do email antes do "@").
+fun ChatBubble(message: Message, searchText: String) {
+    val isCurrentUser = message.senderId == Firebase.auth.currentUser?.uid
+    val bubbleColor = if (isCurrentUser) Purple else DarkGrey
     val senderName = message.senderName?.substringBefore("@") ?: "Usuário"
 
     Box(
@@ -188,7 +266,6 @@ fun ChatBubble(message: Message) {
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 8.dp)
     ) {
-        // Alinha a bolha de mensagem para o lado certo da tela.
         val alignment = if (!isCurrentUser) Alignment.CenterStart else Alignment.CenterEnd
         Column(
             modifier = Modifier
@@ -196,7 +273,6 @@ fun ChatBubble(message: Message) {
                 .align(alignment),
             horizontalAlignment = if (!isCurrentUser) Alignment.Start else Alignment.End
         ) {
-            // Pequena caixa de texto com o nome do usuário.
             Text(
                 text = senderName,
                 color = Color.Gray,
@@ -207,16 +283,18 @@ fun ChatBubble(message: Message) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Exibe um avatar para mensagens que não são do usuário atual.
                 if (!isCurrentUser) {
-                    Image(
-                        painter = painterResource(id = R.drawable.friend),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
+                    AsyncImage(
+                        model = message.senderPhotoUrl,
+                        contentDescription = "Foto de perfil do remetente",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.friend)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                // O contêiner da bolha de mensagem.
                 Box(
                     modifier = Modifier
                         .background(
@@ -224,7 +302,6 @@ fun ChatBubble(message: Message) {
                         )
                         .padding(16.dp)
                 ) {
-                    // Se a mensagem contiver uma URL de imagem, exibe a imagem.
                     if (message.imageUrl != null) {
                         AsyncImage(
                             model = message.imageUrl,
@@ -233,8 +310,28 @@ fun ChatBubble(message: Message) {
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Caso contrário, exibe o texto da mensagem.
-                        Text(text = message.message?.trim() ?: "", color = Color.White)
+                        if (searchText.isNotBlank() && message.message?.contains(searchText, ignoreCase = true) == true) {
+                            val annotatedString = androidx.compose.ui.text.buildAnnotatedString {
+                                val messageText = message.message ?: ""
+                                var lastIndex = 0
+                                val matches = searchText.toRegex(RegexOption.IGNORE_CASE).findAll(messageText)
+
+                                for (match in matches) {
+                                    append(messageText.substring(lastIndex, match.range.first))
+                                    withStyle(style = SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        background = Color.Yellow
+                                    )) {
+                                        append(match.value)
+                                    }
+                                    lastIndex = match.range.last + 1
+                                }
+                                append(messageText.substring(lastIndex))
+                            }
+                            Text(text = annotatedString, color = Color.White)
+                        } else {
+                            Text(text = message.message?.trim() ?: "", color = Color.White)
+                        }
                     }
                 }
             }

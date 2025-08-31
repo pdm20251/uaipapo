@@ -16,18 +16,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -41,8 +48,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.uaipapo.feature.auth.AuthViewModel
 import com.example.uaipapo.model.Channel
 import com.example.uaipapo.ui.theme.DarkGrey
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Tela principal (`Home`) que exibe a lista de canais de chat e permite criar novos.
@@ -51,7 +64,9 @@ import com.example.uaipapo.ui.theme.DarkGrey
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController,
+               authViewModel: AuthViewModel = hiltViewModel()
+) {
     // Instancia e gerencia o ViewModel usando Hilt.
     val viewModel = hiltViewModel<HomeViewModel>()
 
@@ -78,8 +93,52 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
+    // Coleta o estado de login do ViewModel
+    val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsState()
+
+    // Efeito que é acionado quando o estado de login muda.
+    LaunchedEffect(key1 = isUserLoggedIn) {
+        if (!isUserLoggedIn) {
+            // Se o usuário não estiver logado, navegue para a tela de login.
+            navController.navigate("login") {
+                // Limpa a pilha de navegação para que o usuário não possa voltar
+                // para a tela inicial após o logout.
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+            }
+        }
+    }
     // O `Scaffold` fornece uma estrutura de layout para a tela.
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "️UaiPapo",
+                        color = Color.Gray,
+                        style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
+                    )
+                },
+                actions = {
+                    //ABotão de edição de perfil
+                    IconButton(onClick = {
+                        navController.navigate("edit_profile")
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Editar Perfil",
+                            tint = Color.White
+                        )
+                    }
+                    // Botão de logout que chama a função do ViewModel
+                    Button(onClick = { authViewModel.signOut() }) {
+                        Text(text = "Sair")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkGrey)
+            )
+        },
         floatingActionButton = {
             // Botão flutuante para adicionar um novo canal.
             Box(modifier = Modifier

@@ -1,6 +1,7 @@
 package com.example.uaipapo.feature.chat
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.android.volley.Response
@@ -16,9 +17,11 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.database
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.storage.storage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.util.UUID
@@ -38,36 +41,73 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
      */
     val message = _messages.asStateFlow()
 
+    // Lista de mensagens filtradas que a UI irá exibir
+    private val _filteredMessages = MutableStateFlow<List<Message>>(emptyList())
+    val filteredMessages: StateFlow<List<Message>> = _filteredMessages
+
     // Instância do Firebase Realtime Database.
     private val db = Firebase.database
+    private val storage = Firebase.storage.reference
 
-    /**
-     * Envia uma mensagem de texto para um canal específico.
-     * @param channelID O ID do canal para onde a mensagem será enviada.
-     * @param messageText O conteúdo da mensagem de texto.
-     */
-    fun sendMessage(channelID: String, messageText: String?) {
-        // Cria uma nova instância da classe Message com os dados do remetente.
-        val message = Message(
-            db.reference.push().key ?: UUID.randomUUID().toString(),
-            Firebase.auth.currentUser?.uid ?: "",
-            messageText,
-            System.currentTimeMillis(),
-            Firebase.auth.currentUser?.displayName ?: "",
-            null,
-            null
-        )
+    fun sendImageMessage(imageUri: Uri, channelID: String, onComplete: () -> Unit) {
+        val currentUser = Firebase.auth.currentUser ?: return
+        val imageRef = storage.child("chat_images/${channelID}/${UUID.randomUUID()}.jpg")
 
-        // Salva a mensagem no Firebase Realtime Database.
-        db.reference.child("messages").child(channelID).push().setValue(message)
-            .addOnCompleteListener {
-                if (it.isSuccessful) {
-                    // Se a mensagem for enviada com sucesso, envia uma notificação push.
-                    { /* TODO */ }
+        // Inicia o upload da imagem para o Firebase Storage
+        imageRef.putFile(imageUri)
+            .addOnSuccessListener { taskSnapshot ->
+                // Obtém a URL de download da imagem
+                imageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                    // Cria uma mensagem de imagem com a URL
+                    val message = Message(
+                        db.reference.push().key ?: UUID.randomUUID().toString(),
+                        currentUser.uid,
+                        null, // Mensagem de texto é nula para imagens
+                        System.currentTimeMillis(),
+                        currentUser.displayName ?: "Anônimo",
+                        downloadUrl.toString(), // A URL da imagem da mensagem
+                        currentUser.photoUrl.toString() // URL da foto de perfil
+                    )
+                    // Envia a mensagem para o Firebase Realtime Database
+                    db.reference.child("messages").child(channelID).push().setValue(message)
+                        .addOnCompleteListener {
+                            onComplete()
+                        }
                 }
+            }
+            .addOnFailureListener { e ->
+                onComplete()
+                // Tratar falha no upload
             }
     }
 
+    /**
+     * Envia uma mensagem de texto ou imagem para um canal específico.
+     * @param channelID O ID do canal para onde a mensagem será enviada.
+     * @param messageText O conteúdo da mensagem de texto.
+     * @param image A URL da imagem, se a mensagem for uma imagem.
+     */
+    fun sendMessage(channelID: String, messageText: String) {
+        val currentUser = Firebase.auth.currentUser ?: return
+
+        val message = Message(
+            db.reference.push().key ?: UUID.randomUUID().toString(),
+            currentUser.uid,
+            messageText,
+            System.currentTimeMillis(),
+            currentUser.displayName ?: "Anônimo",
+            null,
+            currentUser.photoUrl.toString()
+        )
+
+        // Salva a mensagem do Realtime Firabse Database
+        db.reference.child("messages").child(channelID).push().setValue(message)
+            .addOnCompleteListener {
+                if (it.isSuccessful) {
+                    //postNotificationToUsers(channelID, message.senderName, messageText)
+                }
+            }
+    }
     /**
      * Inicia a escuta por novas mensagens em um canal específico.
      * @param channelID O ID do canal a ser monitorado.
@@ -87,6 +127,7 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
                     }
                     // Atualiza o StateFlow com a nova lista, o que notifica a UI.
                     _messages.value = list
+                    searchMessages("")
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -140,18 +181,20 @@ class ChatViewModel @Inject constructor(@ApplicationContext val context: Context
         )
     }
 
-
     /**
-     * Obtém um token de acesso para autenticação com as APIs do Google.
-     * @return O token de acesso.
+     * Filtra as mensagens com base no texto de busca.
+     * @param query O termo de busca.
+     */
+    fun searchMessages(query: String) {
+        if (query.isBlank()) {
+            _filteredMessages.value = _messages.value
+        } else {
+            val filteredList = _messages.value.filter {
+                it.message?.contains(query, ignoreCase = true) == true
+            }
+            _filteredMessages.value = filteredList
+        }
+    }
 
-    private fun getAccessToken(): String {
-        // Abre o arquivo de credenciais do serviço.
-        val inputStream = context.resources.openRawResource(R.raw.chatter_key)
-        // Cria as credenciais com escopo para o Firebase Cloud Messaging.
-        val googleCreds = GoogleCredentials.fromStream(inputStream)
-            .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
-        // Retorna o token de acesso.
-        return googleCreds.refreshAccessToken().tokenValue
-    }*/
 }
+
