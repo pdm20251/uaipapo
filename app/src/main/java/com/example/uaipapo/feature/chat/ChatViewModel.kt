@@ -1,200 +1,183 @@
 package com.example.uaipapo.feature.chat
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
-import com.android.volley.Response
-import com.android.volley.toolbox.StringRequest
-import com.android.volley.toolbox.Volley
-import com.example.uaipapo.R
+import androidx.lifecycle.viewModelScope
+// Se MessageRepository for usado e injetado, descomente
+// import com.example.uaipapo.data.MessageRepository
 import com.example.uaipapo.model.Message
-//import com.google.auth.oauth2.GoogleCredentials
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.database
-import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.storage.storage
+import com.google.firebase.auth.FirebaseAuth // Import para injeção
+import com.google.firebase.database.DataSnapshot // Import específico
+import com.google.firebase.database.DatabaseError // Import específico
+import com.google.firebase.database.FirebaseDatabase // Import para injeção
+import com.google.firebase.database.ValueEventListener // Import específico
+import com.google.firebase.storage.FirebaseStorage // Import para injeção
+// KTX imports ainda são úteis, especialmente para o Hilt Module.
+// Não são estritamente necessários aqui se tudo for injetado e usado.
+// import com.google.firebase.auth.ktx.auth
+// import com.google.firebase.database.ktx.database
+// import com.google.firebase.storage.ktx.storage
+// import com.google.firebase.ktx.Firebase
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.json.JSONObject
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.util.Date
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
-class ChatViewModel @Inject constructor(@ApplicationContext val context: Context) : ViewModel() {
+class ChatViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val firebaseAuth: FirebaseAuth, // Injetado
+    private val firebaseDatabase: FirebaseDatabase, // Injetado
+    private val firebaseStorage: FirebaseStorage // Injetado
+    // Se você tem MessageRepository injetado e configurado no FirebaseModule:
+    // private val messageRepository: MessageRepository
+) : ViewModel() {
 
-    /**
-     * Declaração de um StateFlow mutável privado que armazena a lista de mensagens.
-     * O uso de uma lista vazia como valor inicial previne erros de estado nulo.
-     */
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
+    val message = _messages.asStateFlow() 
 
-    /**
-     * Expõe a lista de mensagens como um StateFlow de leitura, seguindo a convenção.
-     */
-    val message = _messages.asStateFlow()
-
-    // Lista de mensagens filtradas que a UI irá exibir
     private val _filteredMessages = MutableStateFlow<List<Message>>(emptyList())
     val filteredMessages: StateFlow<List<Message>> = _filteredMessages
 
-    // Instância do Firebase Realtime Database.
-    private val db = Firebase.database
-    private val storage = Firebase.storage.reference
-
-    fun sendImageMessage(imageUri: Uri, channelID: String, onComplete: () -> Unit) {
-        val currentUser = Firebase.auth.currentUser ?: return
-        val imageRef = storage.child("chat_images/${channelID}/${UUID.randomUUID()}.jpg")
-
-        // Inicia o upload da imagem para o Firebase Storage
-        imageRef.putFile(imageUri)
-            .addOnSuccessListener { taskSnapshot ->
-                // Obtém a URL de download da imagem
-                imageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-                    // Cria uma mensagem de imagem com a URL
-                    val message = Message(
-                        db.reference.push().key ?: UUID.randomUUID().toString(),
-                        currentUser.uid,
-                        null, // Mensagem de texto é nula para imagens
-                        System.currentTimeMillis(),
-                        currentUser.displayName ?: "Anônimo",
-                        downloadUrl.toString(), // A URL da imagem da mensagem
-                        currentUser.photoUrl.toString() // URL da foto de perfil
-                    )
-                    // Envia a mensagem para o Firebase Realtime Database
-                    db.reference.child("messages").child(channelID).push().setValue(message)
-                        .addOnCompleteListener {
-                            onComplete()
-                        }
-                }
-            }
-            .addOnFailureListener { e ->
-                onComplete()
-                // Tratar falha no upload
-            }
-    }
-
-    /**
-     * Envia uma mensagem de texto ou imagem para um canal específico.
-     * @param channelID O ID do canal para onde a mensagem será enviada.
-     * @param messageText O conteúdo da mensagem de texto.
-     * @param image A URL da imagem, se a mensagem for uma imagem.
-     */
-    fun sendMessage(channelID: String, messageText: String) {
-        val currentUser = Firebase.auth.currentUser ?: return
-
-        val message = Message(
-            db.reference.push().key ?: UUID.randomUUID().toString(),
-            currentUser.uid,
-            messageText,
-            System.currentTimeMillis(),
-            currentUser.displayName ?: "Anônimo",
-            null,
-            currentUser.photoUrl.toString()
-        )
-
-        // Salva a mensagem do Realtime Firabse Database
-        db.reference.child("messages").child(channelID).push().setValue(message)
-            .addOnCompleteListener {
-                if (it.isSuccessful) {
-                    //postNotificationToUsers(channelID, message.senderName, messageText)
-                }
-            }
-    }
-    /**
-     * Inicia a escuta por novas mensagens em um canal específico.
-     * @param channelID O ID do canal a ser monitorado.
-     */
     fun listenForMessages(channelID: String) {
-        // Define um listener para monitorar o nó de mensagens no Firebase.
-        db.getReference("messages").child(channelID).orderByChild("createdAt")
+        // Usa a instância injetada de FirebaseDatabase
+        firebaseDatabase.getReference("messages").child(channelID).orderByChild("timestamp")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    // Quando novos dados são recebidos, converte-os em uma lista de objetos Message.
                     val list = mutableListOf<Message>()
                     snapshot.children.forEach { data ->
-                        val message = data.getValue(Message::class.java)
-                        message?.let {
-                            list.add(it)
-                        }
+                        val msg = data.getValue(Message::class.java)
+                        msg?.let { list.add(it) }
                     }
-                    // Atualiza o StateFlow com a nova lista, o que notifica a UI.
                     _messages.value = list
-                    searchMessages("")
+                    searchMessages("") 
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                    // Tratamento de erro quando o listener é cancelado.
-                }
+                override fun onCancelled(error: DatabaseError) { /*Tratar erro*/ }
             })
-        // Adiciona o usuário a um tópico de notificação e o registra no canal.
         registerUserIdtoChannel(channelID)
     }
 
-    /**
-     * Obtém os IDs de todos os usuários em um canal.
-     * @param channelID O ID do canal.
-     * @param callback A função de retorno a ser executada com a lista de IDs de usuários.
-     */
-    fun getAllUserEmails(channelID: String, callback: (List<String>) -> Unit) {
-        // Referencia o nó de usuários do canal.
-        val ref = db.reference.child("channels").child(channelID).child("users")
-        // Adiciona um listener para obter os dados uma única vez.
-        ref.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val userIds = snapshot.children.map { it.value.toString() }
-                callback.invoke(userIds)
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                callback.invoke(emptyList())
-            }
-        })
+    fun sendMessage(channelID: String, messageText: String) {
+        // Usa a instância injetada de FirebaseAuth e FirebaseDatabase
+        val currentUser = firebaseAuth.currentUser ?: return
+        val msg = Message(
+            id = firebaseDatabase.reference.push().key ?: UUID.randomUUID().toString(),
+            senderId = currentUser.uid,
+            message = messageText,
+            timestamp = Date(),
+            senderName = currentUser.displayName ?: "Anônimo",
+            senderPhotoUrl = currentUser.photoUrl?.toString(),
+            channelId = channelID
+        )
+        firebaseDatabase.reference.child("messages").child(channelID).push().setValue(msg)
     }
 
-    /**
-     * Registra o ID do usuário atual em um canal, se ele ainda não estiver lá.
-     * @param channelID O ID do canal.
-     */
+    @SuppressLint("Range")
+    private fun getFileMetadata(uri: Uri): Pair<String?, Long?> {
+        var fileName: String? = null
+        var fileSize: Long? = null
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (displayNameIndex != -1) {
+                    fileName = cursor.getString(displayNameIndex)
+                }
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (sizeIndex != -1) {
+                    fileSize = cursor.getLong(sizeIndex)
+                }
+            }
+        }
+        return Pair(fileName, fileSize)
+    }
+
+    fun sendMediaMessage(uri: Uri, channelId: String, mediaType: String, onUploadComplete: () -> Unit) {
+        // Usa instâncias injetadas
+        val currentUser = firebaseAuth.currentUser ?: run {
+            onUploadComplete()
+            return
+        }
+        val (fileName, fileSize) = getFileMetadata(uri)
+        
+        val storageDir = when (mediaType) {
+            "image" -> "chat_images"
+            "document" -> "chat_documents"
+            "audio" -> "chat_audios"
+            "video" -> "chat_videos"
+            else -> "chat_files"
+        }
+        val storagePath = "${storageDir}/${channelId}/${UUID.randomUUID()}_${fileName ?: mediaType}"
+        // Usa a instância injetada de FirebaseStorage
+        val mediaRef = firebaseStorage.reference.child(storagePath)
+
+        viewModelScope.launch {
+            try {
+                mediaRef.putFile(uri).await()
+                val mediaUrlResult = mediaRef.downloadUrl.await().toString()
+                
+                val msg = Message(
+                    // Usa a instância injetada de FirebaseDatabase
+                    id = firebaseDatabase.reference.push().key ?: UUID.randomUUID().toString(),
+                    senderId = currentUser.uid,
+                    senderName = currentUser.displayName ?: "Anônimo",
+                    senderPhotoUrl = currentUser.photoUrl?.toString(),
+                    timestamp = Date(),
+                    channelId = channelId,
+                    mediaUrl = mediaUrlResult,
+                    mediaType = mediaType,
+                    fileName = fileName,
+                    fileSize = fileSize,
+                    imageUrl = if (mediaType == "image") mediaUrlResult else null 
+                )
+                // Usa a instância injetada de FirebaseDatabase
+                firebaseDatabase.reference.child("messages").child(channelId).push().setValue(msg)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                onUploadComplete()
+            }
+        }
+    }
+
+    fun sendImageMessage(imageUri: Uri, channelID: String, onComplete: () -> Unit) {
+        sendMediaMessage(imageUri, channelID, "image", onComplete)
+    }
+
     fun registerUserIdtoChannel(channelID: String) {
-        val currentUser = Firebase.auth.currentUser
-        val ref = db.reference.child("channels").child(channelID).child("users")
+        // Usa instâncias injetadas
+        val currentUser = firebaseAuth.currentUser
+        val ref = firebaseDatabase.reference.child("channels").child(channelID).child("users")
         ref.child(currentUser?.uid ?: "").addListenerForSingleValueEvent(
             object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    // Adiciona o usuário apenas se ele não estiver registrado.
                     if (!snapshot.exists()) {
                         ref.child(currentUser?.uid ?: "").setValue(currentUser?.email)
                     }
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                }
+                override fun onCancelled(error: DatabaseError) {}
             }
         )
     }
 
-    /**
-     * Filtra as mensagens com base no texto de busca.
-     * @param query O termo de busca.
-     */
     fun searchMessages(query: String) {
         if (query.isBlank()) {
             _filteredMessages.value = _messages.value
         } else {
             val filteredList = _messages.value.filter {
-                it.message?.contains(query, ignoreCase = true) == true
+                (it.message?.contains(query, ignoreCase = true) == true) ||
+                (it.fileName?.contains(query, ignoreCase = true) == true)
             }
             _filteredMessages.value = filteredList
         }
     }
-
 }
-

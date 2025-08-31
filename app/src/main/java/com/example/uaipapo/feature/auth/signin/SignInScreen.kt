@@ -115,12 +115,12 @@ fun SignInScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth(),
                     enabled = email.isNotEmpty() && password.isNotEmpty() && (uiState.value == SignInState.Nothing || uiState.value == SignInState.Error)
                 ) {
-                    Text(text = "Sign In")
+                    Text(text = "Entrar")
                 }
 
                 // Botão para navegar para a tela de cadastro.
                 TextButton(onClick = { navController.navigate("signup") }) {
-                    Text(text = "Cadastrse-se")
+                    Text(text = "Cadastre-se")
                 }
             }
         }

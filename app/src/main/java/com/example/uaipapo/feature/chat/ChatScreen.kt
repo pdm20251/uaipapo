@@ -1,10 +1,12 @@
 package com.example.uaipapo.feature.chat
 
-import android.net.Uri
+import java.net.URLEncoder // RE-ADICIONADO
+import java.io.UnsupportedEncodingException // RE-ADICIONADO
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -24,6 +28,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +54,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.withStyle
@@ -57,40 +64,52 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.uaipapo.R
-import com.example.uaipapo.feature.home.ChannelItem
 import com.example.uaipapo.model.Message
 import com.example.uaipapo.ui.theme.DarkGrey
 import com.example.uaipapo.ui.theme.Purple
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.auth.ktx.auth
+import android.util.Log
 
+object ScreenRoutes {
+    const val FULL_SCREEN_IMAGE_ROUTE_PREFIX = "full_screen_image"
+    // REVERTIDO para usar URLEncoder
+    fun fullScreenImageRoute(imageUrl: String): String {
+        return try {
+            "$FULL_SCREEN_IMAGE_ROUTE_PREFIX/${URLEncoder.encode(imageUrl, "UTF-8")}"
+        } catch (e: UnsupportedEncodingException) {
+            Log.e("ScreenRoutes", "Error encoding URL: $imageUrl", e)
+            "$FULL_SCREEN_IMAGE_ROUTE_PREFIX/encoding_error"
+        }
+    }
+}
 
-/**
- * Tela de chat que exibe as mensagens de um canal específico e permite ao usuário enviar novas mensagens.
- *
- * @param navController O controlador de navegação para gerenciar a navegação entre telas.
- * @param channelId O ID do canal de chat atual.
- * @param channelName O nome do canal de chat atual.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(navController: NavController, channelId: String, channelName: String) {
     val viewModel: ChatViewModel = hiltViewModel()
-
-    // Estado para controlar a exibição do indicador de progresso
     val isUploading = remember { mutableStateOf(false) }
-
-    // Estados para a barra de busca
     var showSearchBar by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
 
-    // Launcher para selecionar uma imagem da galeria
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
-        onResult = { uri: Uri? ->
+        onResult = { uri: android.net.Uri? ->
             uri?.let {
                 isUploading.value = true
-                viewModel.sendImageMessage(it, channelId) {
+                viewModel.sendMediaMessage(it, channelId, "image") {
+                    isUploading.value = false
+                }
+            }
+        }
+    )
+
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: android.net.Uri? ->
+            uri?.let {
+                isUploading.value = true
+                viewModel.sendMediaMessage(it, channelId, "document") {
                     isUploading.value = false
                 }
             }
@@ -103,7 +122,6 @@ fun ChatScreen(navController: NavController, channelId: String, channelName: Str
             TopAppBar(
                 title = { Text(text = channelName, color = Color.White) },
                 actions = {
-                    // Botão para mostrar/ocultar a barra de busca
                     IconButton(onClick = {
                         showSearchBar = !showSearchBar
                         if (!showSearchBar) {
@@ -120,17 +138,16 @@ fun ChatScreen(navController: NavController, channelId: String, channelName: Str
                 }
             )
         },
-        content = { paddingValues -> // O nome do parâmetro deve ser usado
+        content = { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues) // Correção aqui: use o padding fornecido
+                    .padding(paddingValues)
             ) {
-                LaunchedEffect(key1 = true) {
+                LaunchedEffect(key1 = channelId) {
                     viewModel.listenForMessages(channelId)
                 }
 
-                // A barra de busca só é exibida se showSearchBar for verdadeiro
                 if (showSearchBar) {
                     TextField(
                         value = searchText,
@@ -142,69 +159,97 @@ fun ChatScreen(navController: NavController, channelId: String, channelName: Str
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(8.dp),
-                        colors = TextFieldDefaults.colors().copy(
-                            focusedContainerColor = Color.Cyan,
-                            unfocusedContainerColor = Color.Cyan,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = DarkGrey,
+                            unfocusedContainerColor = DarkGrey,
                             focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color.White,
+                            focusedPlaceholderColor = Color.Gray,
+                            unfocusedPlaceholderColor = Color.Gray
                         )
                     )
                 }
 
-                val messages = viewModel.filteredMessages.collectAsState() // Use filteredMessages
+                val messages = viewModel.filteredMessages.collectAsState()
                 ChatMessages(
+                    navController = navController,
+                    channelName = channelName,
                     messages = messages.value,
                     onSendMessage = { message ->
                         viewModel.sendMessage(channelId, message)
                     },
-                    onAttachImageClicked = {
+                    onAttachPhotoClicked = {
                         imagePickerLauncher.launch("image/*")
                     },
+                    onAttachDocumentClicked = {
+                        documentPickerLauncher.launch("*/*")
+                    },
                     searchText = searchText,
-                    channelName = channelName, // Este parâmetro não é mais usado por ChatMessages
                     isUploading = isUploading.value
                 )
             }
         })
 }
 
-/**
- * Componente principal do chat que contém a lista de mensagens e a caixa de entrada de texto.
- *
- * @param channelName O nome do canal.
- * @param messages A lista de mensagens a ser exibida.
- * @param onSendMessage Uma função de callback para enviar uma nova mensagem.
- */
 @Composable
 fun ChatMessages(
-    channelName: String, // Este parâmetro pode ser removido, pois a TopBar já exibe o nome
+    navController: NavController,
+    channelName: String,
     messages: List<Message>,
     onSendMessage: (String) -> Unit,
-    onAttachImageClicked: () -> Unit,
-    isUploading: Boolean, // Estado de carregamento da imagem anexa
+    onAttachPhotoClicked: () -> Unit,
+    onAttachDocumentClicked: () -> Unit,
+    isUploading: Boolean,
     searchText: String
 ) {
     val hideKeyboardController = LocalSoftwareKeyboardController.current
     val msg = remember { mutableStateOf("") }
+    var showAttachmentMenu by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.weight(1f)) {
-            // Removido o item com ChannelItem para evitar a duplicação do nome do canal
             items(messages) { message ->
-                ChatBubble(message = message, searchText = searchText)
+                ChatBubble(
+                    navController = navController,
+                    message = message,
+                    searchText = searchText
+                )
             }
         }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(DarkGrey)
-                .padding(8.dp), verticalAlignment = Alignment.CenterVertically
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onAttachImageClicked) {
-                Image(
-                    painter = painterResource(id = R.drawable.attach),
-                    contentDescription = "Anexar imagem"
-                )
+            Box {
+                IconButton(onClick = { showAttachmentMenu = true }) {
+                    Image(
+                        painter = painterResource(id = R.drawable.attach),
+                        contentDescription = "Anexar mídia"
+                    )
+                }
+                DropdownMenu(
+                    expanded = showAttachmentMenu,
+                    onDismissRequest = { showAttachmentMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Imagem") },
+                        onClick = {
+                            showAttachmentMenu = false
+                            onAttachPhotoClicked()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Documento") },
+                        onClick = {
+                            showAttachmentMenu = false
+                            onAttachDocumentClicked()
+                        }
+                    )
+                }
             }
 
             TextField(
@@ -216,13 +261,14 @@ fun ChatMessages(
                 keyboardActions = KeyboardActions(onDone = {
                     hideKeyboardController?.hide()
                 }),
-                colors = TextFieldDefaults.colors().copy(
+                colors = TextFieldDefaults.colors(
                     focusedContainerColor = DarkGrey,
                     unfocusedContainerColor = DarkGrey,
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    focusedPlaceholderColor = Color.White,
-                    unfocusedPlaceholderColor = Color.White
+                    cursorColor = Color.White,
+                    focusedPlaceholderColor = Color.Gray,
+                    unfocusedPlaceholderColor = Color.Gray
                 )
             )
             IconButton(onClick = {
@@ -250,16 +296,19 @@ fun ChatMessages(
     }
 }
 
-/**
- * Componente de UI para exibir uma única mensagem de chat, em forma de bolha.
- *
- * @param message O objeto `Message` a ser exibido.
- */
 @Composable
-fun ChatBubble(message: Message, searchText: String) {
+fun ChatBubble(
+    navController: NavController,
+    message: Message,
+    searchText: String
+) {
     val isCurrentUser = message.senderId == Firebase.auth.currentUser?.uid
     val bubbleColor = if (isCurrentUser) Purple else DarkGrey
-    val senderName = message.senderName?.substringBefore("@") ?: "Usuário"
+    val senderDisplayName = if (message.senderName.isNullOrBlank() || message.senderName.contains("@")) {
+        message.senderName?.substringBefore("@") ?: "Usuário"
+    } else {
+        message.senderName
+    }
 
     Box(
         modifier = Modifier
@@ -269,19 +318,21 @@ fun ChatBubble(message: Message, searchText: String) {
         val alignment = if (!isCurrentUser) Alignment.CenterStart else Alignment.CenterEnd
         Column(
             modifier = Modifier
-                .padding(8.dp)
-                .align(alignment),
+                .align(alignment)
+                .then(if(isCurrentUser) Modifier.padding(start = 48.dp) else Modifier.padding(end=0.dp)),
             horizontalAlignment = if (!isCurrentUser) Alignment.Start else Alignment.End
         ) {
-            Text(
-                text = senderName,
-                color = Color.Gray,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
+            if (!isCurrentUser) {
+                Text(
+                    text = senderDisplayName,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 56.dp, bottom = 4.dp)
+                )
+            }
 
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 if (!isCurrentUser) {
                     AsyncImage(
@@ -295,42 +346,96 @@ fun ChatBubble(message: Message, searchText: String) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
+
                 Box(
                     modifier = Modifier
                         .background(
-                            color = bubbleColor, shape = RoundedCornerShape(8.dp)
+                            color = bubbleColor, shape = RoundedCornerShape(
+                                topStart = 8.dp,
+                                topEnd = 8.dp,
+                                bottomStart = if (isCurrentUser && !message.senderPhotoUrl.isNullOrEmpty()) 0.dp else 8.dp,
+                                bottomEnd = if (!isCurrentUser && !message.senderPhotoUrl.isNullOrEmpty()) 0.dp else 8.dp
+                            )
                         )
-                        .padding(16.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .widthIn(min = 40.dp)
                 ) {
-                    if (message.imageUrl != null) {
-                        AsyncImage(
-                            model = message.imageUrl,
-                            contentDescription = null,
-                            modifier = Modifier.size(200.dp),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        if (searchText.isNotBlank() && message.message?.contains(searchText, ignoreCase = true) == true) {
-                            val annotatedString = androidx.compose.ui.text.buildAnnotatedString {
-                                val messageText = message.message ?: ""
-                                var lastIndex = 0
-                                val matches = searchText.toRegex(RegexOption.IGNORE_CASE).findAll(messageText)
-
-                                for (match in matches) {
-                                    append(messageText.substring(lastIndex, match.range.first))
-                                    withStyle(style = SpanStyle(
-                                        fontWeight = FontWeight.Bold,
-                                        background = Color.Yellow
-                                    )) {
-                                        append(match.value)
+                    when {
+                        message.mediaType == "image" && !message.mediaUrl.isNullOrBlank() -> {
+                            AsyncImage(
+                                model = message.mediaUrl,
+                                contentDescription = "Imagem anexada",
+                                modifier = Modifier
+                                    .sizeIn(maxWidth = 240.dp, maxHeight = 240.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        message.mediaUrl?.let { navController.navigate(ScreenRoutes.fullScreenImageRoute(it)) }
+                                    },
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                        message.imageUrl != null && message.mediaType == null -> {
+                            AsyncImage(
+                                model = message.imageUrl,
+                                contentDescription = "Imagem anexada",
+                                modifier = Modifier
+                                    .sizeIn(maxWidth = 240.dp, maxHeight = 240.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        message.imageUrl?.let { navController.navigate(ScreenRoutes.fullScreenImageRoute(it)) }
+                                    },
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                        message.mediaType == "document" && !message.fileName.isNullOrBlank() -> {
+                            val fileName = message.fileName ?: ""
+                            val annotatedString = buildAnnotatedString {
+                                if (searchText.isNotBlank() && fileName.contains(searchText, ignoreCase = true)) {
+                                    var lastIndex = 0
+                                    val matches = searchText.toRegex(RegexOption.IGNORE_CASE).findAll(fileName)
+                                    for (match in matches) {
+                                        append(fileName.substring(lastIndex, match.range.first))
+                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, background = Color.Yellow, color = DarkGrey)) {
+                                            append(match.value)
+                                        }
+                                        lastIndex = match.range.last + 1
                                     }
-                                    lastIndex = match.range.last + 1
+                                    append(fileName.substring(lastIndex))
+                                } else {
+                                    append(fileName)
                                 }
-                                append(messageText.substring(lastIndex))
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable {
+                                    Log.d("ChatBubble", "Documento clicado: ${message.mediaUrl ?: message.fileName}")
+                                }
+                            ) {
+                                Text(text = annotatedString, color = Color.White)
+                            }
+                        }
+                        !message.message.isNullOrBlank() -> {
+                            val messageText = message.message!!
+                            val annotatedString = buildAnnotatedString {
+                                if (searchText.isNotBlank() && messageText.contains(searchText, ignoreCase = true)) {
+                                    var lastIndex = 0
+                                    val matches = searchText.toRegex(RegexOption.IGNORE_CASE).findAll(messageText)
+                                    for (match in matches) {
+                                        append(messageText.substring(lastIndex, match.range.first))
+                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, background = Color.Yellow, color = DarkGrey )) {
+                                            append(match.value)
+                                        }
+                                        lastIndex = match.range.last + 1
+                                    }
+                                    append(messageText.substring(lastIndex))
+                                } else {
+                                    append(messageText)
+                                }
                             }
                             Text(text = annotatedString, color = Color.White)
-                        } else {
-                            Text(text = message.message?.trim() ?: "", color = Color.White)
+                        }
+                        else -> {
+                            Text(text = "Conteúdo multimídia", color = Color.LightGray, fontSize = 12.sp)
                         }
                     }
                 }
