@@ -9,8 +9,6 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 import com.example.uaipapo.model.ChatroomModel;
-import com.example.uaipapo.model.UserModel;
-import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
 import com.google.firebase.Timestamp;
 import java.util.ArrayList;

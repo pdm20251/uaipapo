@@ -12,8 +12,7 @@
     <ImageView
         android:layout_width="160dp"
         android:layout_height="160dp"
-        android:src="@drawable/chat_icon"
-        app:tint="@color/my_primary"/>
+        android:src="@drawable/uai_logo"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -27,19 +26,10 @@
 
     <Button
         android:id="@+id/login_phone_button"
-        android:layout_width="match_parent"
+        android:layout_width="150dip"
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
-        android:text="Login com Telefone"
-        android:background="@drawable/btn_rounded_corner"
-        android:textColor="@color/white"/>
-
-    <Button
-        android:id="@+id/login_email_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="15dp"
-        android:text="Login com E-mail"
+        android:text="Log In"
         android:background="@drawable/btn_rounded_corner"
         android:textColor="@color/white"/>
 

@@ -1,4 +1,4 @@
-package com.example.uaipapo.adapter;
+package com.example.uaipapo;
 
 import android.content.Context;
 import android.net.Uri;
@@ -10,7 +10,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.uaipapo.R;
+
 import com.example.uaipapo.model.ChatroomModel;
 import com.example.uaipapo.model.UserModel;
 import com.example.uaipapo.utils.AndroidUtil;

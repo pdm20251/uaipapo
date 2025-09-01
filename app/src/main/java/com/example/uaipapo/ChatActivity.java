@@ -1,7 +1,6 @@
 package com.example.uaipapo;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,7 +23,6 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
 import com.example.uaipapo.adapter.ChatRecyclerAdapter;
 import com.example.uaipapo.model.ChatMessageModel;
 import com.example.uaipapo.model.ChatroomModel;
@@ -51,12 +49,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -227,7 +222,7 @@ public class ChatActivity extends AppCompatActivity implements ChatRecyclerAdapt
 
         if (chatroomModel.isGroupChat()) {
             toolbarTitle.setText(chatroomModel.getGroupName());
-            toolbarProfilePic.setImageResource(R.drawable.chat_icon);
+            toolbarProfilePic.setImageResource(R.drawable.chat_icon_old);
             toolbar.setOnClickListener(v -> {
                 Intent intent = new Intent(this, GroupSettingsActivity.class);
                 intent.putExtra("chatroomId", chatroomId);

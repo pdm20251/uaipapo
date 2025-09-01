@@ -9,7 +9,6 @@ import androidx.appcompat.app.AppCompatActivity;
 public class LoginActivity extends AppCompatActivity {
 
     Button loginPhoneButton;
-    Button loginEmailButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,14 +16,9 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         loginPhoneButton = findViewById(R.id.login_phone_button);
-        loginEmailButton = findViewById(R.id.login_email_button);
 
         loginPhoneButton.setOnClickListener(v -> {
             startActivity(new Intent(LoginActivity.this, LoginPhoneNumberActivity.class));
-        });
-
-        loginEmailButton.setOnClickListener(v -> {
-            startActivity(new Intent(LoginActivity.this, LoginEmailActivity.class));
         });
     }
 }

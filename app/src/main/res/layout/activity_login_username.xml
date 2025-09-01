@@ -73,11 +73,12 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Enter your username"
-        android:layout_gravity="center_vertical"
+        android:text="Seu nome"
+        android:layout_gravity="center"
         android:letterSpacing="0.08"
         android:textStyle="bold"
         android:textSize="25sp"
+        android:textAlignment="center"
         android:layout_weight="5"/>
 
     <LinearLayout
@@ -90,10 +91,10 @@
 
 
         <EditText
-            android:layout_width="match_parent"
+            android:layout_width="200dip"
             android:layout_height="wrap_content"
             android:padding="10dp"
-            android:hint="Username"
+            android:hint="Nome de usuário"
             android:inputType="text"
             android:layout_margin="10dp"
             android:background="@drawable/edit_text_rounded_corner"
@@ -106,14 +107,14 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="100dp"
-        android:gravity="center_vertical"
+        android:gravity="center"
         android:orientation="vertical"
         android:layout_weight="20">
         <Button
-            android:layout_width="match_parent"
+            android:layout_width="150dip"
             android:layout_height="wrap_content"
             android:background="@drawable/btn_rounded_corner"
-            android:text="Let me in"
+            android:text="Entrar"
             android:id="@+id/login_let_me_in_btn"/>
         <ProgressBar
             android:layout_width="32dp"

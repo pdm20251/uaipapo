@@ -42,7 +42,7 @@ public class RecentChatRecyclerAdapter extends FirestoreRecyclerAdapter<Chatroom
 
         if (model.isGroupChat()) {
             holder.usernameText.setText(model.getGroupName());
-            holder.profilePic.setImageResource(R.drawable.chat_icon);
+            holder.profilePic.setImageResource(R.drawable.chat_icon_old);
             holder.statusIndicator.setVisibility(View.GONE);
             holder.lastMessageTime.setText(FirebaseUtil.timestampToString(model.getLastMessageTimestamp()));
             holder.lastMessageText.setText(model.getLastMessage());

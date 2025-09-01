@@ -46,7 +46,7 @@ public class MessageSearchAdapter extends RecyclerView.Adapter<MessageSearchAdap
 
         if (chatroomModel.isGroupChat()) {
             holder.usernameText.setText(chatroomModel.getGroupName());
-            holder.profilePic.setImageResource(R.drawable.chat_icon);
+            holder.profilePic.setImageResource(R.drawable.chat_icon_old);
         } else {
             FirebaseUtil.getOtherUserFromChatroom(chatroomModel.getUserIds()).get().addOnSuccessListener(documentSnapshot -> {
                 UserModel otherUser = documentSnapshot.toObject(UserModel.class);

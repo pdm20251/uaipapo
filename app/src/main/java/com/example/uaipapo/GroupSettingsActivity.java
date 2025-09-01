@@ -14,7 +14,6 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.uaipapo.adapter.GroupMemberRecyclerAdapter;
 import com.example.uaipapo.model.ChatroomModel;
 import com.example.uaipapo.utils.FirebaseUtil;
 import com.google.android.material.switchmaterial.SwitchMaterial;

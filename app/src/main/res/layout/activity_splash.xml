@@ -16,7 +16,7 @@
         <ImageView
             android:layout_width="160dp"
             android:layout_height="160dp"
-            android:src="@drawable/chat_icon"
+            android:src="@drawable/uai_logo"
             app:tint="@color/my_secondary"/>
         <TextView
             android:layout_width="wrap_content"
@@ -38,7 +38,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Developed by Uai Papo"
+        android:text="Developed by uaiPapo"
         android:layout_alignParentBottom="true"
         android:gravity="center"
         android:layout_marginBottom="20dp"

@@ -4,7 +4,7 @@ import android.app.Application;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import com.example.uaipapo.model.UserModel;
+
 import com.example.uaipapo.utils.FirebaseUtil;
 
 public class ChatApplication extends Application implements Application.ActivityLifecycleCallbacks {
