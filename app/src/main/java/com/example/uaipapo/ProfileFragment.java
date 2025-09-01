@@ -6,11 +6,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
-import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,27 +22,14 @@ import com.example.uaipapo.model.UserModel;
 import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
 import com.github.dhaval2404.imagepicker.ImagePicker;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.switchmaterial.SwitchMaterial;
-import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.EmailAuthProvider;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.messaging.FirebaseMessaging;
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
 
 public class ProfileFragment extends Fragment {
 
     ImageView profilePic;
     EditText usernameInput;
     EditText phoneInput;
-    EditText ageInput;
-    EditText cityInput;
-    EditText emailInput;
-    EditText newPasswordInput;
-    EditText confirmPasswordInput;
     Button updateProfileBtn;
     ProgressBar progressBar;
     TextView logoutBtn;
@@ -112,11 +96,6 @@ public class ProfileFragment extends Fragment {
 
     void updateBtnClick(){
         String newUsername = usernameInput.getText().toString();
-        String newAgeStr = ageInput.getText().toString();
-        String newCity = cityInput.getText().toString();
-        String newEmail = emailInput.getText().toString();
-        String newPassword = newPasswordInput.getText().toString();
-        String confirmPassword = confirmPasswordInput.getText().toString();
 
         if(newUsername.isEmpty() || newUsername.length()<3){
             usernameInput.setError("Username length should be at least 3 chars");
@@ -125,103 +104,14 @@ public class ProfileFragment extends Fragment {
 
         currentUserModel.setUsername(newUsername);
         currentUserModel.setSearchUsername(newUsername.toLowerCase());
-        currentUserModel.setCity(newCity);
-        if (!newAgeStr.isEmpty()) {
-            currentUserModel.setAge(Integer.parseInt(newAgeStr));
-        } else {
-            currentUserModel.setAge(0);
-        }
 
         setInProgress(true);
 
-        // Lógica para VINCULAR e-mail ou ATUALIZAR senha
-        if (currentUserModel.getEmail() == null && !newEmail.isEmpty()) {
-            // Caso 1: Usuário de telefone está VINCULANDO um e-mail pela primeira vez
-            handleLinkEmail(newEmail, newPassword, confirmPassword);
-        } else if (currentUserModel.getEmail() != null && !newPassword.isEmpty()) {
-            // Caso 2: Usuário com e-mail já vinculado está ATUALIZANDO a senha
-            handleUpdatePassword(newPassword, confirmPassword);
-        } else {
-            // Caso 3: Nenhuma ação de senha, apenas atualiza foto e outros dados
-            if(selectedImageUri!=null){
-                FirebaseUtil.getCurrentProfilePicStorageRef().putFile(selectedImageUri)
-                        .addOnCompleteListener(task -> updateToFirestore());
-            }else{
-                updateToFirestore();
-            }
-        }
-    }
-
-    void handleLinkEmail(String email, String password, String confirmPassword) {
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailInput.setError("E-mail inválido");
-            setInProgress(false);
-            return;
-        }
-        if (password.length() < 6) {
-            newPasswordInput.setError("A senha deve ter pelo menos 6 caracteres");
-            setInProgress(false);
-            return;
-        }
-        if (!password.equals(confirmPassword)) {
-            confirmPasswordInput.setError("As senhas não coincidem");
-            setInProgress(false);
-            return;
-        }
-
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if(user != null) {
-            AuthCredential credential = EmailAuthProvider.getCredential(email, password);
-            user.linkWithCredential(credential)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            currentUserModel.setEmail(email);
-                            if(selectedImageUri!=null){
-                                FirebaseUtil.getCurrentProfilePicStorageRef().putFile(selectedImageUri)
-                                        .addOnCompleteListener(imageTask -> updateToFirestore());
-                            }else{
-                                updateToFirestore();
-                            }
-                        } else {
-                            Toast.makeText(getContext(), "Falha ao vincular e-mail: " + task.getException().getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                            setInProgress(false);
-                        }
-                    });
-        } else {
-            setInProgress(false);
-        }
-    }
-
-    void handleUpdatePassword(String password, String confirmPassword) {
-        if (password.length() < 6) {
-            newPasswordInput.setError("A senha deve ter pelo menos 6 caracteres");
-            setInProgress(false);
-            return;
-        }
-        if (!password.equals(confirmPassword)) {
-            confirmPasswordInput.setError("As senhas não coincidem");
-            setInProgress(false);
-            return;
-        }
-
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            user.updatePassword(password).addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    Toast.makeText(getContext(), "Senha atualizada com sucesso", Toast.LENGTH_SHORT).show();
-                    if(selectedImageUri!=null){
-                        FirebaseUtil.getCurrentProfilePicStorageRef().putFile(selectedImageUri)
-                                .addOnCompleteListener(imageTask -> updateToFirestore());
-                    }else{
-                        updateToFirestore();
-                    }
-                } else {
-                    Toast.makeText(getContext(), "Falha ao atualizar senha: " + task.getException().getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                    setInProgress(false);
-                }
-            });
-        } else {
-            setInProgress(false);
+        if(selectedImageUri!=null){
+            FirebaseUtil.getCurrentProfilePicStorageRef().putFile(selectedImageUri)
+                    .addOnCompleteListener(task -> updateToFirestore());
+        }else{
+            updateToFirestore();
         }
     }
 
@@ -253,18 +143,6 @@ public class ProfileFragment extends Fragment {
             if(currentUserModel != null){
                 usernameInput.setText(currentUserModel.getUsername());
                 phoneInput.setText(currentUserModel.getPhone());
-                cityInput.setText(currentUserModel.getCity());
-                if (currentUserModel.getAge() > 0) {
-                    ageInput.setText(String.valueOf(currentUserModel.getAge()));
-                }
-
-                if (currentUserModel.getEmail() != null && !currentUserModel.getEmail().isEmpty()) {
-                    emailInput.setText(currentUserModel.getEmail());
-                    emailInput.setEnabled(false); // Desabilita o campo de e-mail se já existir
-                } else {
-                    // Se não tem e-mail, o usuário pode vincular um
-                    emailInput.setEnabled(true);
-                }
 
                 busySwitch.setChecked("busy".equals(currentUserModel.getUserStatus()));
                 busySwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {

@@ -67,15 +67,21 @@ public class RecentChatRecyclerAdapter extends FirestoreRecyclerAdapter<Chatroom
                             AndroidUtil.passUserModelAsIntent(intent, otherUserModel);
                             boolean lastMessageSentByMe = model.getLastMessageSenderId().equals(FirebaseUtil.currentUserId());
 
+                            holder.profilePic.setImageResource(R.drawable.person_icon);
+
                             StorageReference ref = FirebaseUtil.getOtherProfilePicStorageRef(otherUserModel.getUserId());
                             if (ref != null) {
                                 ref.getDownloadUrl()
-                                        .addOnCompleteListener(t -> {
-                                            if (t.isSuccessful()) {
-                                                Uri uri = t.getResult();
+                                    .addOnCompleteListener(t -> {
+                                        if (t.isSuccessful()) {
+                                            Uri uri = t.getResult();
+                                            if (holder.getAdapterPosition() == position) {
                                                 AndroidUtil.setProfilePic(context, uri, holder.profilePic);
                                             }
-                                        });
+                                        }
+                                    });
+                            } else {
+                                holder.profilePic.setImageResource(R.drawable.person_icon);
                             }
 
                             holder.usernameText.setText(otherUserModel.getUsername());
@@ -83,7 +89,6 @@ public class RecentChatRecyclerAdapter extends FirestoreRecyclerAdapter<Chatroom
                             else holder.lastMessageText.setText(model.getLastMessage());
                             holder.lastMessageTime.setText(FirebaseUtil.timestampToString(model.getLastMessageTimestamp()));
 
-                            // CORREÇÃO: Lógica de contagem agora usa um Listener
                             String chatroomId = FirebaseUtil.getChatroomId(FirebaseUtil.currentUserId(), otherUserModel.getUserId());
                             FirebaseUtil.getChatroomMessageReference(chatroomId)
                                     .whereEqualTo("senderId", otherUserModel.getUserId())
@@ -99,7 +104,6 @@ public class RecentChatRecyclerAdapter extends FirestoreRecyclerAdapter<Chatroom
                                             } else {
                                                 holder.unreadCountText.setVisibility(View.GONE);
                                             }
-                                            // Lógica para o destaque da notificação personalizada
                                             if (hasCustomNotif && unreadCount > 0) {
                                                 holder.itemView.setBackground(ContextCompat.getDrawable(context, R.drawable.list_item_background_highlight));
                                             } else {
