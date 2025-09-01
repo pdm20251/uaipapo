@@ -19,3 +19,5 @@ val BrightRed = Color(0xFFFF3131)
 val White = Color(0XFFF5F4F2)
 
 val LighGray = Color(0xFFA4A4A4)
+
+val Gray = Color(0xFF2F2F2F)

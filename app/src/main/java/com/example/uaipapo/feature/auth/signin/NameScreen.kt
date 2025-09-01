@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -76,17 +77,29 @@ fun NameScreen(navController: NavController, viewModel: AuthViewModel, phoneNumb
         Column(
             Modifier
                 .fillMaxSize()
-                .background(Color.White)
                 .padding(it)
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Text(text = "Your name", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, fontSize = 36.sp)
-            Text(text = "+${phoneNumber.take(2)} (${phoneNumber.drop(2).take(2)}) ${phoneNumber.drop(4).take(5)}-${phoneNumber.drop(9)}", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(
+                text = "Seu nome",
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                fontSize = 36.sp,
+                color = BrightRed
+            )
 
-            Spacer(Modifier.size(16.dp))
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                text = "+55 (${phoneNumber.take(2)}) ${phoneNumber.drop(2).take(5)}-${phoneNumber.drop(7)}",
+                textAlign = TextAlign.Center,
+                color = BrightRed
+            )
+
+            Spacer(Modifier.height(120.dp))
 
             OutlinedTextField(value = name,
                 onValueChange = {
@@ -94,8 +107,6 @@ fun NameScreen(navController: NavController, viewModel: AuthViewModel, phoneNumb
                 },
                 modifier = Modifier.fillMaxWidth(0.6f),
                 colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = White,
-                    focusedContainerColor = White,
                     errorContainerColor = DarkRed,
                     focusedLabelColor = BrightRed,
                     focusedIndicatorColor = BrightRed,
@@ -111,19 +122,11 @@ fun NameScreen(navController: NavController, viewModel: AuthViewModel, phoneNumb
             } else {
                 Button(
                     onClick = { viewModel.updateUserName(name) },
-                    modifier = Modifier.fillMaxWidth(0.6f),
+                    modifier = Modifier.fillMaxWidth(0.4f),
                     enabled = name.length > 2 && (uiState.value == AuthState.WaitingForName),
                     colors = ButtonDefaults.buttonColors(containerColor = BrightRed, disabledContainerColor = LighGray)
                 ) {
-                    Text(text = "Next")
-                }
-
-                TextButton(onClick = { }) {
-                    Text(text = "Resend code in s", color = BrightRed)
-                }
-
-                TextButton(onClick = { navController.navigate("signin") }) {
-                    Text(text = "Wrong number?", fontStyle = FontStyle.Italic, color = BrightRed)
+                    Text(text = "Entrar")
                 }
             }
         }

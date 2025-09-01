@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,8 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -75,46 +80,47 @@ fun SignInScreen(navController: NavController, viewModel: AuthViewModel) {
         Column(
             Modifier
                 .fillMaxSize()
-                .background(Color.White)
                 .padding(it)
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text(text = "Bem-vindo(a) ao uaiPapo", fontWeight = FontWeight.Black, fontSize = 22.sp, color = BrightRed)
+
             Image(
-                painter = painterResource(id = R.drawable.logo),
+                painter = painterResource(id = R.drawable.uai_logo),
                 contentDescription = null,
                 modifier = Modifier
                     .size(200.dp)
-                    .background(Color.White)
             )
 
-            Spacer(modifier = Modifier.size(30.dp))
+            Spacer(modifier = Modifier.size(50.dp))
 
-            OutlinedTextField(value = "+$phonenumber",
+            Text(text = "Digite seu número de telefone", fontSize = 14.sp, color = BrightRed)
+
+            Spacer(modifier = Modifier.size(10.dp))
+
+            OutlinedTextField(value = "+55$phonenumber",
                 onValueChange = { newValue ->
                     // Ensure the fixed prefix is always present
-                    if (newValue.startsWith("+")) {
-                        phonenumber = newValue.substringAfter("+")
+                    if (newValue.startsWith("+55")) {
+                        phonenumber = newValue.substringAfter("+55")
                     } else {
                         // If the user somehow removes the prefix, reset
                         phonenumber = ""
                     }
                 },
-                modifier = Modifier.fillMaxWidth(0.8f),
-                label = { Text(text = "Phone Number") },
+                modifier = Modifier.fillMaxWidth(0.6f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = White,
-                    focusedContainerColor = White,
-                    errorContainerColor = White,
                     focusedLabelColor = BrightRed,
                     focusedIndicatorColor = BrightRed,
                     cursorColor = BrightRed,
-                    focusedTextColor = BrightRed
+                    focusedTextColor = BrightRed,
                 ),
             )
 
-            Spacer(modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             if (uiState.value == AuthState.Loading) {
                 CircularProgressIndicator(color = BrightRed)
@@ -126,7 +132,7 @@ fun SignInScreen(navController: NavController, viewModel: AuthViewModel) {
                         if(currentActivity != null) {
                             viewModel.sendOtp(
                                 currentActivity,
-                                "+${phonenumber.replace("(", "")
+                                "+55${phonenumber.replace("(", "")
                                     .replace(")", "")
                                     .replace("-", "")
                                     .replace(" ", "")}",
@@ -136,11 +142,11 @@ fun SignInScreen(navController: NavController, viewModel: AuthViewModel) {
                             Log.e("SignInScreen", "Current activity is null.")
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(0.6f),
-                    enabled = phonenumber.length >= 10 && (uiState.value == AuthState.Unauthenticated || uiState.value == AuthState.Error),
+                    modifier = Modifier.fillMaxWidth(0.4f),
+                    enabled = phonenumber.length >= 9 && (uiState.value == AuthState.Unauthenticated || uiState.value == AuthState.Error),
                     colors = ButtonDefaults.buttonColors(containerColor = BrightRed, disabledContainerColor = LighGray)
                 ) {
-                    Text(text = "Next")
+                    Text(text = "Próximo")
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.example.uaipapo.feature.auth.signin
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -14,7 +15,10 @@ import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.database.database
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.Timer
+import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -29,6 +33,8 @@ class AuthViewModel @Inject constructor() : ViewModel() {
     var currentUser: FirebaseUser? = null
     var verificationId: String? = null
     var resendToken: PhoneAuthProvider.ForceResendingToken? = null
+    private val _timeOutSeconds = MutableStateFlow(60L)
+    val timeOutSeconds: StateFlow<Long> = _timeOutSeconds.asStateFlow()
 
     init {
         checkAuthStatus()
@@ -138,6 +144,25 @@ class AuthViewModel @Inject constructor() : ViewModel() {
         } else {
             _state.value = AuthState.Error
         }
+    }
+
+    @SuppressLint("DiscouragedApi")
+    fun startResendTimer(){
+        val timer = Timer()
+
+        timer.scheduleAtFixedRate(
+            object : TimerTask() {
+                override fun run() {
+                    _timeOutSeconds.value--
+
+                    if(_timeOutSeconds.value <= 0){
+                        timer.cancel()
+                    }
+                }
+            },
+            0,
+            1000
+        )
     }
 
     fun signOut(){
