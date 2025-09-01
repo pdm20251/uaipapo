@@ -82,8 +82,6 @@ public class ProfileFragment extends Fragment {
         ageInput = view.findViewById(R.id.profile_age);
         cityInput = view.findViewById(R.id.profile_city);
         emailInput = view.findViewById(R.id.profile_email);
-        newPasswordInput = view.findViewById(R.id.profile_new_password);
-        confirmPasswordInput = view.findViewById(R.id.profile_confirm_password);
         updateProfileBtn = view.findViewById(R.id.profle_update_btn);
         progressBar = view.findViewById(R.id.profile_progress_bar);
         logoutBtn = view.findViewById(R.id.logout_btn);

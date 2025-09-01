@@ -29,7 +29,8 @@
             android:layout_height="wrap_content"
             android:text="Não perturbe"
             android:textSize="18sp"
-            android:layout_marginBottom="10dp"/>
+            android:layout_marginBottom="10dp"
+            android:textColor="@color/black"/>
 
         <EditText
             android:id="@+id/profile_username"
@@ -40,7 +41,8 @@
             android:inputType="text"
             android:layout_margin="10dp"
             android:background="@drawable/edit_text_rounded_corner"
-            android:elevation="5dp"/>
+            android:elevation="5dp"
+            android:textColor="@color/black"/>
 
         <EditText
             android:id="@+id/profile_age"
@@ -51,7 +53,8 @@
             android:inputType="number"
             android:layout_margin="10dp"
             android:background="@drawable/edit_text_rounded_corner"
-            android:elevation="5dp"/>
+            android:elevation="5dp"
+            android:textColor="@color/black"/>
 
         <EditText
             android:id="@+id/profile_city"
@@ -62,7 +65,8 @@
             android:inputType="text"
             android:layout_margin="10dp"
             android:background="@drawable/edit_text_rounded_corner"
-            android:elevation="5dp"/>
+            android:elevation="5dp"
+            android:textColor="@color/black"/>
 
         <EditText
             android:id="@+id/profile_email"
@@ -73,29 +77,8 @@
             android:inputType="textEmailAddress"
             android:layout_margin="10dp"
             android:background="@drawable/edit_text_rounded_corner"
-            android:elevation="5dp"/>
-
-        <EditText
-            android:id="@+id/profile_new_password"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="10dp"
-            android:hint="Nova senha"
-            android:inputType="textPassword"
-            android:layout_margin="10dp"
-            android:background="@drawable/edit_text_rounded_corner"
-            android:elevation="5dp"/>
-
-        <EditText
-            android:id="@+id/profile_confirm_password"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="10dp"
-            android:hint="Confirme nova senha"
-            android:inputType="textPassword"
-            android:layout_margin="10dp"
-            android:background="@drawable/edit_text_rounded_corner"
-            android:elevation="5dp"/>
+            android:elevation="5dp"
+            android:textColor="@color/black"/>
 
         <EditText
             android:id="@+id/profile_phone"
@@ -107,20 +90,23 @@
             android:layout_margin="10dp"
             android:background="@drawable/edit_text_rounded_corner"
             android:elevation="5dp"
-            android:enabled="false"/>
+            android:enabled="false"
+            android:textColor="@color/black"/>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
+            android:gravity="center"
             android:layout_marginTop="10dp"
             android:orientation="vertical">
             <Button
                 android:id="@+id/profle_update_btn"
-                android:layout_width="match_parent"
+                android:layout_width="150dip"
                 android:layout_height="wrap_content"
                 android:background="@drawable/btn_rounded_corner"
-                android:text="Salvar mudanças"/>
+                android:gravity="center"
+                android:text="Salvar mudanças"
+                android:textColor="@color/white"/>
             <ProgressBar
                 android:id="@+id/profile_progress_bar"
                 android:layout_width="32dp"
