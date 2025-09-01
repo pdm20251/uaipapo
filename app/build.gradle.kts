@@ -81,6 +81,9 @@ dependencies {
 
     // Volley
     implementation("com.android.volley:volley:1.2.1")
+
+    // PDF Viewer
+    implementation("com.github.barteksc:android-pdf-viewer:2.8.2") // <-- VERSÃO ALTERADA
 /*
     // Supabase
     implementation(platform("io.github.jan-tennert.supabase:bom:2.2.3"))
