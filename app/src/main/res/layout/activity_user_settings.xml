@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Contact Info"
+            android:text="Informações de contato"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/white"
@@ -51,7 +51,7 @@
             android:id="@+id/username_view"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Username"
+            android:text="Usuário"
             android:textSize="24sp"
             android:textStyle="bold"/>
 
@@ -59,8 +59,8 @@
             android:id="@+id/notification_switch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Custom Notifications"
-            android:textSize="18sp"
+            android:text="Notificações personalizadas"
+            android:textSize="16sp"
             android:layout_marginTop="20dp"/>
 
         <Button
@@ -68,7 +68,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:backgroundTint="@android:color/holo_red_dark"
-            android:text="Remove Contact"
+            android:text="Remover contato"
             android:textColor="@color/white"
             android:layout_marginTop="30dp"/>
     </LinearLayout>
