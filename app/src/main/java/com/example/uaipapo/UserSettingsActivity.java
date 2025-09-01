@@ -15,6 +15,8 @@ import com.example.uaipapo.model.UserModel;
 import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
 import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.firebase.storage.StorageReference;
+
 import java.util.Map;
 
 public class UserSettingsActivity extends AppCompatActivity {
@@ -44,13 +46,17 @@ public class UserSettingsActivity extends AppCompatActivity {
         otherUser = AndroidUtil.getUserModelFromIntent(getIntent());
 
         usernameView.setText(otherUser.getUsername());
-        FirebaseUtil.getOtherProfilePicStorageRef(otherUser.getUserId()).getDownloadUrl()
-                .addOnCompleteListener(t -> {
-                    if (t.isSuccessful()) {
-                        Uri uri = t.getResult();
-                        AndroidUtil.setProfilePic(this, uri, profilePicView);
-                    }
-                });
+        StorageReference ref = FirebaseUtil.getOtherProfilePicStorageRef(otherUser.getUserId());
+
+        if (ref != null) {
+            ref.getDownloadUrl()
+                    .addOnCompleteListener(t -> {
+                        if (t.isSuccessful()) {
+                            Uri uri = t.getResult();
+                            AndroidUtil.setProfilePic(this, uri, profilePicView);
+                        }
+                    });
+        }
 
         backButton.setOnClickListener(v -> onBackPressed());
         removeContactBtn.setOnClickListener(v -> showRemoveContactDialog());

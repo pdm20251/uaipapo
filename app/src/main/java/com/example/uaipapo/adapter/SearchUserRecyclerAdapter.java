@@ -19,6 +19,7 @@ import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.firebase.storage.StorageReference;
 
 import java.util.List;
 
@@ -65,13 +66,16 @@ public class SearchUserRecyclerAdapter extends FirestoreRecyclerAdapter<UserMode
             holder.checkmarkIcon.setVisibility(View.GONE);
         }
 
-        FirebaseUtil.getOtherProfilePicStorageRef(model.getUserId()).getDownloadUrl()
-                .addOnCompleteListener(t -> {
-                    if(t.isSuccessful()){
-                        Uri uri  = t.getResult();
-                        AndroidUtil.setProfilePic(context,uri,holder.profilePic);
-                    }
-                });
+        StorageReference ref = FirebaseUtil.getOtherProfilePicStorageRef(model.getUserId());
+        if (ref != null) {
+            ref.getDownloadUrl()
+                    .addOnCompleteListener(t -> {
+                        if (t.isSuccessful()) {
+                            Uri uri = t.getResult();
+                            AndroidUtil.setProfilePic(context, uri, holder.profilePic);
+                        }
+                    });
+        }
 
         holder.itemView.setOnClickListener(v -> {
             // A lógica de clique não muda, a ChatActivity já trata de conversas novas e existentes.

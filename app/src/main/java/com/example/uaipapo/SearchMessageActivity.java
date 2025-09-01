@@ -77,7 +77,6 @@ public class SearchMessageActivity extends AppCompatActivity {
 
                         Log.d("SearchMessage", "Found " + foundMessages.size() + " messages.");
 
-                        // ADICIONAR FEEDBACK SE NENHUM RESULTADO FOR ENCONTRADO
                         if (foundMessages.isEmpty()) {
                             Toast.makeText(this, "No messages found for '" + searchTerm + "'", Toast.LENGTH_LONG).show();
                         }

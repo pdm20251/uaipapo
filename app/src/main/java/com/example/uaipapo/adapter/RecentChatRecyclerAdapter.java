@@ -20,6 +20,7 @@ import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.firebase.storage.StorageReference;
 
 public class RecentChatRecyclerAdapter extends FirestoreRecyclerAdapter<ChatroomModel, RecentChatRecyclerAdapter.ChatroomModelViewHolder> {
 
@@ -66,13 +67,16 @@ public class RecentChatRecyclerAdapter extends FirestoreRecyclerAdapter<Chatroom
                             AndroidUtil.passUserModelAsIntent(intent, otherUserModel);
                             boolean lastMessageSentByMe = model.getLastMessageSenderId().equals(FirebaseUtil.currentUserId());
 
-                            FirebaseUtil.getOtherProfilePicStorageRef(otherUserModel.getUserId()).getDownloadUrl()
-                                    .addOnCompleteListener(t -> {
-                                        if (t.isSuccessful()) {
-                                            Uri uri = t.getResult();
-                                            AndroidUtil.setProfilePic(context, uri, holder.profilePic);
-                                        }
-                                    });
+                            StorageReference ref = FirebaseUtil.getOtherProfilePicStorageRef(otherUserModel.getUserId());
+                            if (ref != null) {
+                                ref.getDownloadUrl()
+                                        .addOnCompleteListener(t -> {
+                                            if (t.isSuccessful()) {
+                                                Uri uri = t.getResult();
+                                                AndroidUtil.setProfilePic(context, uri, holder.profilePic);
+                                            }
+                                        });
+                            }
 
                             holder.usernameText.setText(otherUserModel.getUsername());
                             if (lastMessageSentByMe) holder.lastMessageText.setText("You: " + model.getLastMessage());

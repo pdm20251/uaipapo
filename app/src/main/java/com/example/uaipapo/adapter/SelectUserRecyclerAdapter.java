@@ -16,6 +16,8 @@ import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.firebase.storage.StorageReference;
+
 import java.util.ArrayList;
 
 public class SelectUserRecyclerAdapter extends FirestoreRecyclerAdapter<UserModel, SelectUserRecyclerAdapter.UserModelViewHolder> {
@@ -46,13 +48,16 @@ public class SelectUserRecyclerAdapter extends FirestoreRecyclerAdapter<UserMode
         holder.usernameText.setText(model.getUsername());
         holder.phoneText.setText(model.getPhone());
 
-        FirebaseUtil.getOtherProfilePicStorageRef(model.getUserId()).getDownloadUrl()
+        StorageReference ref = FirebaseUtil.getOtherProfilePicStorageRef(model.getUserId());
+        if (ref != null) {
+            ref.getDownloadUrl()
                 .addOnCompleteListener(t -> {
                     if (t.isSuccessful()) {
                         Uri uri = t.getResult();
                         AndroidUtil.setProfilePic(context, uri, holder.profilePic);
                     }
                 });
+        }
 
         holder.checkBox.setChecked(selectedUserIds.contains(model.getUserId()));
 

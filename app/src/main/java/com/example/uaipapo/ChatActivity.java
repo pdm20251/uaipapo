@@ -231,13 +231,16 @@ public class ChatActivity extends AppCompatActivity implements ChatRecyclerAdapt
         } else {
             if (otherUser != null) {
                 toolbarTitle.setText(otherUser.getUsername());
-                FirebaseUtil.getOtherProfilePicStorageRef(otherUser.getUserId()).getDownloadUrl()
+                StorageReference ref = FirebaseUtil.getOtherProfilePicStorageRef(otherUser.getUserId());
+                if (ref != null) {
+                    ref.getDownloadUrl()
                         .addOnCompleteListener(t -> {
                             if (t.isSuccessful()) {
                                 Uri uri = t.getResult();
                                 AndroidUtil.setProfilePic(this, uri, toolbarProfilePic);
                             }
                         });
+                }
                 toolbar.setOnClickListener(v -> {
                     Intent intent = new Intent(this, UserSettingsActivity.class);
                     intent.putExtra("chatroomId", chatroomId);

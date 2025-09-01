@@ -81,4 +81,20 @@ public class UserModel {
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
     public String getUserStatus() { return userStatus; }
     public void setUserStatus(String userStatus) { this.userStatus = userStatus; }
+
+    @Override
+    public String toString() {
+        return "UserModel{" +
+                "phone='" + phone + '\'' +
+                ", email='" + email + '\'' +
+                ", username='" + username + '\'' +
+                ", searchUsername='" + searchUsername + '\'' +
+                ", createdTimestamp=" + createdTimestamp +
+                ", userId='" + userId + '\'' +
+                ", fcmToken='" + fcmToken + '\'' +
+                ", userStatus='" + userStatus + '\'' +
+                ", age=" + age +
+                ", city='" + city + '\'' +
+                '}';
+    }
 }

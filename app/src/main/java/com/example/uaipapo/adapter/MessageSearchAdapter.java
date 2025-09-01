@@ -1,6 +1,5 @@
 package com.example.uaipapo.adapter;
 
-// Adicione as importações necessárias
 import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
@@ -15,6 +14,7 @@ import com.example.uaipapo.R;
 import com.example.uaipapo.model.ChatMessageModel;
 import com.example.uaipapo.model.ChatroomModel;
 import com.example.uaipapo.model.UserModel;
+import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
 import java.util.List;
 
@@ -47,24 +47,31 @@ public class MessageSearchAdapter extends RecyclerView.Adapter<MessageSearchAdap
         if (chatroomModel.isGroupChat()) {
             holder.usernameText.setText(chatroomModel.getGroupName());
             holder.profilePic.setImageResource(R.drawable.chat_icon_old);
+
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(context, ChatActivity.class);
+                intent.putExtra("chatroomId", chatroomModel.getChatroomId());
+                intent.putExtra("messageTimestamp", messageModel.getTimestamp().toDate().getTime());
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            });
+
         } else {
             FirebaseUtil.getOtherUserFromChatroom(chatroomModel.getUserIds()).get().addOnSuccessListener(documentSnapshot -> {
                 UserModel otherUser = documentSnapshot.toObject(UserModel.class);
                 if (otherUser != null) {
                     holder.usernameText.setText(otherUser.getUsername());
-                    // Lógica para foto de perfil pode ser adicionada aqui
+                    holder.itemView.setOnClickListener(v -> {
+                        Intent intent = new Intent(context, ChatActivity.class);
+                        AndroidUtil.passUserModelAsIntent(intent, otherUser);
+                        intent.putExtra("chatroomId", chatroomModel.getChatroomId());
+                        intent.putExtra("messageTimestamp", messageModel.getTimestamp().toDate().getTime());
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.startActivity(intent);
+                    });
                 }
             });
         }
-
-        holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(context, ChatActivity.class);
-            intent.putExtra("chatroomId", chatroomModel.getChatroomId());
-            // Passar o timestamp para a ChatActivity saber para onde navegar
-            intent.putExtra("messageTimestamp", messageModel.getTimestamp().toDate().getTime());
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-        });
     }
 
     @Override

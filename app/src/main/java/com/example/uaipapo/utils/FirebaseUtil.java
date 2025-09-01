@@ -73,9 +73,13 @@ public class FirebaseUtil {
                 .child(FirebaseUtil.currentUserId());
     }
 
-    public static StorageReference  getOtherProfilePicStorageRef(String otherUserId){
-        return FirebaseStorage.getInstance().getReference().child("profile_pic")
-                .child(otherUserId);
+    public static StorageReference getOtherProfilePicStorageRef(String otherUserId){
+        try {
+            return FirebaseStorage.getInstance().getReference().child("profile_pic")
+                    .child(otherUserId);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static boolean isGroupChat(String chatroomId) {

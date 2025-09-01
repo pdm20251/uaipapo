@@ -15,6 +15,8 @@ import com.example.uaipapo.model.ChatroomModel;
 import com.example.uaipapo.model.UserModel;
 import com.example.uaipapo.utils.AndroidUtil;
 import com.example.uaipapo.utils.FirebaseUtil;
+import com.google.firebase.storage.StorageReference;
+
 import java.util.List;
 
 public class GroupMemberRecyclerAdapter extends RecyclerView.Adapter<GroupMemberRecyclerAdapter.UserModelViewHolder> {
@@ -45,13 +47,16 @@ public class GroupMemberRecyclerAdapter extends RecyclerView.Adapter<GroupMember
                 if (userModel == null) return;
 
                 holder.usernameText.setText(userModel.getUsername());
-                FirebaseUtil.getOtherProfilePicStorageRef(userModel.getUserId()).getDownloadUrl()
-                        .addOnCompleteListener(t -> {
-                            if (t.isSuccessful()) {
-                                Uri uri = t.getResult();
-                                AndroidUtil.setProfilePic(context, uri, holder.profilePic);
-                            }
-                        });
+                StorageReference ref = FirebaseUtil.getOtherProfilePicStorageRef(userModel.getUserId());
+                if (ref != null) {
+                    ref.getDownloadUrl()
+                            .addOnCompleteListener(t -> {
+                                if (t.isSuccessful()) {
+                                    Uri uri = t.getResult();
+                                    AndroidUtil.setProfilePic(context, uri, holder.profilePic);
+                                }
+                            });
+                }
 
                 // Esconder o botão de remover para o próprio usuário
                 if (userId.equals(FirebaseUtil.currentUserId())) {
