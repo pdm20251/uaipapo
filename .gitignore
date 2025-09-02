@@ -1,3 +1,4 @@
+# Arquivos compilados e temporários do Android
 *.iml
 .gradle
 /local.properties
@@ -13,3 +14,96 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Arquivos gerados pelo Android Studio
+*.iml
+.idea/*
+!/.idea/runConfigurations
+!/.idea/codeStyles
+!/.idea/inspectionProfiles
+
+# Arquivos de build do Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+.gradletasknamecache
+
+# Arquivos do sistema operacional
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs e arquivos de debug
+*.log
+*.hprof
+
+# Arquivos do NDK (se usar C/C++)
+.externalNativeBuild/
+.cxx/
+cmake-build-debug/
+.cmake/
+
+# Arquivos específicos do IntelliJ/Android Studio
+.idea/
+*.iws
+*.ipr
+out/
+
+# Arquivos de teste e coverage
+test-results/
+jacoco.exec
+*.exec
+coverage/
+
+# Arquivos de release e keystore (IMPORTANTE para segurança)
+*.jks
+*.keystore
+app/release/
+release.properties
+keystore.properties
+
+# Arquivos do Firebase (se usar)
+google-services.json.bak
+app/google-services.json.orig
+
+# Arquivos temporários do Compose
+compose_compiler_dump/
+.compose_compiler/
+
+# Arquivos de backup
+*.orig
+*.rej
+*~
+*.swp
+*.tmp
+
+# Arquivos do Proguard/R8
+proguard/
+mapping.txt
+seeds.txt
+usage.txt
+resources.txt
+
+# Dependências locais
+libs/*.jar
+!libs/README.md
+
+# Arquivos de configuração local
+local.properties
+signing.properties
+gradle.properties.local
+
+# Cache do Android Lint
+lint/generated/
+lint/outputs/
+lint/tmp/
+
+# Arquivos de profiling
+*.trace
+*.hprof
