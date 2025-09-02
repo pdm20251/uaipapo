@@ -1,3 +1,7 @@
+# Arquivos de credenciais do Firebase
+google-services.json
+uaipapokey.json
+
 # Arquivos compilados e temporários do Android
 *.iml
 .gradle
