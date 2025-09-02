@@ -16,11 +16,10 @@ Desenvolvido como projeto acadêmico para a disciplina de Programação para Dis
 
 Os arquivos entregáveis estão na pasta deliverable/ na raiz do repositório:
 ```
-deliverable
-├── cronograma.pdf
-├── quiz-app.apk
+delivery
+├── apresentação.pdf
 ├── relatório.pdf
-├── slides.pdf
+├── uai-papo.apk
 └── vídeo.mp4
 ```
 
